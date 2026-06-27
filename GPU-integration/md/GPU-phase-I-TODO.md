@@ -1161,3 +1161,9 @@ Po uruchomieniu `GpuExperiment.exe`:
 - [ ] GPU line i CPU ref. line na wykresie są wizualnie identyczne
 - [ ] Zamknięcie okna kończy aplikację bez hang
 
+
+
+modyfikacje względem orginału:
+1) dodano modyfikację podstawowych parametrów sygnałów 
+2) dodano dirty flag i automatyczne przeładowanie wyniku splotu po zmianie parametrów sygnałów
+3) zrobiono jedną solucje i GPU-Integration z jednym vendor i tools
