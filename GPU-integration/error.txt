@@ -1,0 +1,99 @@
+Build started at 14:48...
+1>------ Build started: Project: GpuExperiment, Configuration: Debug x64 ------
+1>NVCC: src\cuda\cuda_impl.cu
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(159): error : identifier "appState" is undefined
+1>      const double gpuDt = appState.T / static_cast<double>(appState.N - 1);
+1>                           ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(160): error : identifier "dt" is undefined
+1>      convolutionKernel<<<gridSize, blockSize>>>(d_A, d_B, d_C, N, dt);
+1>                                                                   ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(136): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaMalloc(&d_A, bytes)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 136, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                      ^
+1>
+1>Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(137): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaMalloc(&d_B, bytes)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 137, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                      ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(138): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaMalloc(&d_C, bytes)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 138, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                      ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(141): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventCreate(&evH2D_start)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 141, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                            ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(142): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventCreate(&evH2D_stop)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 142, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                           ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(143): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventCreate(&evK_start)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 143, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                          ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(144): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventCreate(&evK_stop)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 144, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                         ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(145): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventCreate(&evD2H_start)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 145, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                            ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(146): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventCreate(&evD2H_stop)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 146, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                           ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(149): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventRecord(evH2D_start, 0)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 149, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                              ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(150): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaMemcpy(d_A, inputA, bytes, cudaMemcpyHostToDevice)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 150, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                                                     ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(151): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaMemcpy(d_B, inputB, bytes, cudaMemcpyHostToDevice)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 151, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                                                     ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(152): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventRecord(evH2D_stop, 0)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 152, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                             ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(153): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventSynchronize(evH2D_stop)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 153, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                               ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(154): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventElapsedTime(&elapsed, evH2D_start, evH2D_stop)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 154, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                                                      ^
+1>
+1>D:\SJCM\01_SemiconductorStudio\SST-Experiments\GPU-integration\src\cuda\cuda_impl.cu(158): warning #546-D: transfer of control bypasses initialization of:
+1>            variable "gpuDt" (declared at line 159)
+1>      do { cudaError_t _e = (cudaEventRecord(evK_start, 0)); if (_e != cudaSuccess) { snprintf((result).errorMessage, sizeof((result).errorMessage), "CUDA error at %s:%d  ΓåÆ  %s", "D:\\SJCM\\01_SemiconductorStudio\\SST-Experiments\\GPU-integration\\src\\cuda\\cuda_impl.cu", 158, cudaGetErrorString(_e)); (result).success = false; goto cuda_cleanup; } } while (0);
+1>                                                                                                                                                                                                                                                                                                                                            ^
+1>
+1>2 errors detected in the compilation of "src/cuda/cuda_impl.cu".
+1>cuda_impl.cu
+1>D:\Aplications\VisualStudio\VisualStudioIDE\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(254,5): error MSB8066: Custom build for 'src\cuda\cuda_impl.cu' exited with code 2.
+1>Done building project "GpuExperiment.vcxproj" -- FAILED.
+========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 14:48 and took 01,550 seconds ==========
