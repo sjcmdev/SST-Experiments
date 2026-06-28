@@ -5,8 +5,6 @@
 #include <fstream>
 #include <sstream>
 
-static constexpr const char* KERNEL_FUNC_NAME = "convolution";
-
 KernelManager::KernelManager() = default;
 
 KernelManager::~KernelManager()
@@ -18,21 +16,28 @@ void KernelManager::unloadModule()
 {
     if (m_module) {
         cuModuleUnload(m_module);
-        m_module = nullptr;
-        m_function = nullptr;
-        m_ready = false;
     }
+
+    m_module = nullptr;
+    m_functions.clear();
+    m_ready = false;
 }
 
 NvrtcCompileResult KernelManager::compile(
     const std::string& source,
     int capMajor,
-    int capMinor)
+    int capMinor,
+    const std::vector<std::string>& expectedFunctions)
 {
     NvrtcCompileResult result;
 
     if (source.empty()) {
         result.log = "ERROR: source string is empty";
+        return result;
+    }
+
+    if (expectedFunctions.empty()) {
+        result.log = "ERROR: no expected functions specified";
         return result;
     }
 
@@ -42,10 +47,11 @@ NvrtcCompileResult KernelManager::compile(
     nvrtcResult nvrtcError = nvrtcCreateProgram(
         &program,
         source.c_str(),
-        "convolution.cu",
+        "runtime_kernel.cu",
         0,
         nullptr,
         nullptr);
+
     if (nvrtcError != NVRTC_SUCCESS) {
         result.log = std::string("nvrtcCreateProgram failed: ")
             + nvrtcGetErrorString(nvrtcError);
@@ -94,22 +100,28 @@ NvrtcCompileResult KernelManager::compile(
         return result;
     }
 
-    driverError = cuModuleGetFunction(&m_function, m_module, KERNEL_FUNC_NAME);
-    if (driverError != CUDA_SUCCESS) {
-        const char* message = "unknown";
-        cuGetErrorString(driverError, &message);
-        result.log += "\n[DRIVER] cuModuleGetFunction(\"";
-        result.log += KERNEL_FUNC_NAME;
-        result.log += "\") failed: ";
-        result.log += message;
-        cuModuleUnload(m_module);
-        m_module = nullptr;
-        m_function = nullptr;
+    for (const std::string& functionName : expectedFunctions) {
+        CUfunction function = nullptr;
+        driverError = cuModuleGetFunction(&function, m_module, functionName.c_str());
+        if (driverError == CUDA_SUCCESS) {
+            m_functions[functionName] = function;
+        } else {
+            const char* message = "unknown";
+            cuGetErrorString(driverError, &message);
+            result.log += "\n[DRIVER] missing function \"";
+            result.log += functionName;
+            result.log += "\": ";
+            result.log += message;
+        }
+    }
+
+    if (m_functions.empty()) {
+        result.log += "\nNo functions loaded.";
+        unloadModule();
         return result;
     }
 
     m_ready = true;
-
     auto endTime = std::chrono::high_resolution_clock::now();
     result.compileTimeMs =
         std::chrono::duration<float, std::milli>(endTime - startTime).count();
@@ -126,9 +138,19 @@ bool KernelManager::isReady() const
     return m_ready;
 }
 
-KernelHandle KernelManager::getFunction() const
+KernelHandle KernelManager::getFunction(const std::string& name) const
 {
-    return reinterpret_cast<KernelHandle>(m_function);
+    auto it = m_functions.find(name);
+    if (it == m_functions.end()) {
+        return nullptr;
+    }
+
+    return reinterpret_cast<KernelHandle>(it->second);
+}
+
+int KernelManager::functionCount() const
+{
+    return static_cast<int>(m_functions.size());
 }
 
 std::string loadKernelSourceFromFile(const std::string& path)

@@ -1,47 +1,41 @@
-// kernel_manager.h
-// Zarządzanie kompilacją kernela przez NVRTC i ładowaniem przez Driver API.
-//
-// Ten plik includuje cuda.h i nvrtc.h — to jest celowe.
-// kernel_manager.cpp kompiluje MSVC (cl.exe), nie NVCC — i to jest poprawne,
-// bo NVRTC i Driver API to zwykłe biblioteki C++ bez specjalnej składni GPU.
+// kernel_manager.h — zmodyfikowany (wersja Phase 4)
 #pragma once
 #include <string>
-#include "cuda_interface.hpp"  // KernelHandle, NvrtcCompileResult
-
-// Driver API i NVRTC — nagłówki z CUDA Toolkit (includowane przez cl.exe)
+#include <unordered_map> // NOWE
+#include <vector>
+#include "cuda_interface.hpp"
 #include <cuda.h>
 #include <nvrtc.h>
 
-class KernelManager {
+class KernelManager
+{
 public:
     KernelManager();
     ~KernelManager();
 
-    // Skompiluj source przez NVRTC, załaduj jako moduł Driver API.
-    // capMajor / capMinor — compute capability z CudaDeviceInfo
-    // (np. 7 i 5 dla sm_75).
+    // Skompiluj source (może zawierać WIELE __global__ funkcji).
+    // expectedFunctions: lista nazw funkcji do pobrania z modułu po kompilacji.
     NvrtcCompileResult compile(
-        const std::string& source,
-        int                capMajor,
-        int                capMinor
+        const std::string &source,
+        int capMajor,
+        int capMinor,
+        const std::vector<std::string> &expectedFunctions // NOWE
     );
 
-    // Czy kernel jest skompilowany i gotowy do użycia?
     bool isReady() const;
 
-    // Zwraca uchwyt do funkcji kernela (CUfunction rzutowany na void*).
-    // Zwraca nullptr jeśli isReady() == false.
-    KernelHandle getFunction() const;
+    // Zwraca uchwyt do nazwanej funkcji. nullptr jeśli nie znaleziono.
+    KernelHandle getFunction(const std::string &name) const; // ZMIENIONE
+
+    // Ile funkcji zostało załadowanych?
+    int functionCount() const;
 
 private:
-    void unloadModule();  // zwolnij bieżący CUmodule jeśli załadowany
+    void unloadModule();
 
-    CUmodule   m_module   = nullptr;
-    CUfunction m_function = nullptr;
-    bool       m_ready    = false;
+    CUmodule m_module = nullptr;
+    std::unordered_map<std::string, CUfunction> m_functions; // NOWE
+    bool m_ready = false;
 };
 
-// ---------------------------------------------------------------------------
-// Wczytaj plik kernela z dysku. Zwraca pusty string jeśli plik nie istnieje.
-// ---------------------------------------------------------------------------
-std::string loadKernelSourceFromFile(const std::string& path);
+std::string loadKernelSourceFromFile(const std::string &path);

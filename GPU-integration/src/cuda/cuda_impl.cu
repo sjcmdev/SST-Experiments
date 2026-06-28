@@ -8,6 +8,52 @@
 
 static CUdevice g_cudaDevice = 0;
 static CUcontext g_cudaPrimaryContext = nullptr;
+// Makro dla Driver API (CUresult) — NOWE
+#define CU_CHECK_LAUNCH(call, resultRef) do {                              \
+    CUresult _r = (call);                                                   \
+    if (_r != CUDA_SUCCESS) {                                               \
+        const char* _s = "?";                                               \
+        cuGetErrorString(_r, &_s);                                          \
+        fprintf(stderr, "[CU] %s:%d %s → %s\n",                           \
+            __FILE__, __LINE__, #call, _s);                                 \
+        (resultRef).success = false;                                        \
+        (resultRef).errorMessage = std::string(#call) + ": " + _s;        \
+        goto cuda_error;                                                    \
+    }                                                                       \
+} while(0)
+#define PIPELINE_CUDA_CHECK(call, resultRef)                         \
+    do                                                               \
+    {                                                                \
+        cudaError_t error = (call);                                  \
+        if (error != cudaSuccess)                                    \
+        {                                                            \
+            char message[512];                                       \
+            snprintf(message, sizeof(message),                       \
+                     "CUDA Runtime error at %s:%d -> %s",            \
+                     __FILE__, __LINE__, cudaGetErrorString(error)); \
+            (resultRef).success = false;                             \
+            (resultRef).errorMessage = message;                      \
+            goto pipeline_cleanup;                                   \
+        }                                                            \
+    } while (0)
+
+#define PIPELINE_CU_CHECK(call, resultRef)               \
+    do                                                   \
+    {                                                    \
+        CUresult error = (call);                         \
+        if (error != CUDA_SUCCESS)                       \
+        {                                                \
+            const char *driverMessage = "unknown";       \
+            cuGetErrorString(error, &driverMessage);     \
+            char message[512];                           \
+            snprintf(message, sizeof(message),           \
+                     "CUDA Driver error at %s:%d -> %s", \
+                     __FILE__, __LINE__, driverMessage); \
+            (resultRef).success = false;                 \
+            (resultRef).errorMessage = message;          \
+            goto pipeline_cleanup;                       \
+        }                                                \
+    } while (0)
 
 #define CUDA_CHECK(call)                                                     \
     do {                                                                     \
@@ -182,4 +228,145 @@ cuda_cleanup:
     if (d_A) cudaFree(d_A);
     if (d_B) cudaFree(d_B);
     if (d_C) cudaFree(d_C);
+}
+
+void runPipeline(
+    KernelHandle genAFunc,
+    KernelHandle genBFunc,
+    KernelHandle convFunc,
+    int N,
+    double dt,
+    double *signalA_out,
+    double *signalB_out,
+    double *convOut,
+    PipelineResult &result)
+{
+    result.success = false;
+    result.errorMessage.clear();
+    result.genAMs = 0.0f;
+    result.genBMs = 0.0f;
+    result.convMs = 0.0f;
+    result.readbackMs = 0.0f;
+
+    if (!genAFunc || !genBFunc || !convFunc)
+    {
+        result.errorMessage = "Jeden lub więcej kerneli nie jest załadowany.";
+        return;
+    }
+
+    if (!g_cudaPrimaryContext)
+    {
+        result.errorMessage = "CUDA Driver nie został zainicjalizowany. Wywołaj initCudaDriver().";
+        return;
+    }
+
+    CUfunction fGenA = reinterpret_cast<CUfunction>(genAFunc);
+    CUfunction fGenB = reinterpret_cast<CUfunction>(genBFunc);
+    CUfunction fConv = reinterpret_cast<CUfunction>(convFunc);
+
+    const size_t bytes = static_cast<size_t>(N) * sizeof(double);
+    const unsigned int block = 256u;
+    const unsigned int grid = (static_cast<unsigned int>(N) + block - 1u) / block;
+
+    double *d_A = nullptr;
+    double *d_B = nullptr;
+    double *d_C = nullptr;
+
+    cudaEvent_t evA0 = nullptr;
+    cudaEvent_t evA1 = nullptr;
+    cudaEvent_t evB0 = nullptr;
+    cudaEvent_t evB1 = nullptr;
+    cudaEvent_t evC0 = nullptr;
+    cudaEvent_t evC1 = nullptr;
+    cudaEvent_t evR0 = nullptr;
+    cudaEvent_t evR1 = nullptr;
+
+    PIPELINE_CU_CHECK(cuCtxSetCurrent(g_cudaPrimaryContext), result);
+
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evA0), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evA1), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evB0), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evB1), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evC0), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evC1), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evR0), result);
+    PIPELINE_CUDA_CHECK(cudaEventCreate(&evR1), result);
+
+    PIPELINE_CUDA_CHECK(cudaMalloc(&d_A, bytes), result);
+    PIPELINE_CUDA_CHECK(cudaMalloc(&d_B, bytes), result);
+    PIPELINE_CUDA_CHECK(cudaMalloc(&d_C, bytes), result);
+
+    // --- Generate Signal A ---
+    {
+        void *args[] = {&d_A, &N, &dt};
+        PIPELINE_CUDA_CHECK(cudaEventRecord(evA0, 0), result);
+        PIPELINE_CU_CHECK(
+            cuLaunchKernel(fGenA, grid, 1, 1, block, 1, 1, 0, 0, args, nullptr),
+            result);
+        PIPELINE_CUDA_CHECK(cudaEventRecord(evA1, 0), result);
+        PIPELINE_CUDA_CHECK(cudaEventSynchronize(evA1), result);
+        PIPELINE_CUDA_CHECK(cudaEventElapsedTime(&result.genAMs, evA0, evA1), result);
+    }
+
+    // --- Generate Signal B ---
+    {
+        void *args[] = {&d_B, &N, &dt};
+        PIPELINE_CUDA_CHECK(cudaEventRecord(evB0, 0), result);
+        PIPELINE_CU_CHECK(
+            cuLaunchKernel(fGenB, grid, 1, 1, block, 1, 1, 0, 0, args, nullptr),
+            result);
+        PIPELINE_CUDA_CHECK(cudaEventRecord(evB1, 0), result);
+        PIPELINE_CUDA_CHECK(cudaEventSynchronize(evB1), result);
+        PIPELINE_CUDA_CHECK(cudaEventElapsedTime(&result.genBMs, evB0, evB1), result);
+    }
+
+    // --- Convolution ---
+    {
+        // runConvolution() przekazuje do tego kernela również dt, więc tutaj
+        // argumenty muszą mieć tę samą kolejność i liczbę.
+        void *args[] = {&d_A, &d_B, &d_C, &N, &dt};
+        PIPELINE_CUDA_CHECK(cudaEventRecord(evC0, 0), result);
+        PIPELINE_CU_CHECK(
+            cuLaunchKernel(fConv, grid, 1, 1, block, 1, 1, 0, 0, args, nullptr),
+            result);
+        PIPELINE_CUDA_CHECK(cudaEventRecord(evC1, 0), result);
+        PIPELINE_CUDA_CHECK(cudaEventSynchronize(evC1), result);
+        PIPELINE_CUDA_CHECK(cudaEventElapsedTime(&result.convMs, evC0, evC1), result);
+    }
+
+    // --- Readback (GPU -> CPU) ---
+    PIPELINE_CUDA_CHECK(cudaEventRecord(evR0, 0), result);
+    PIPELINE_CUDA_CHECK(cudaMemcpy(signalA_out, d_A, bytes, cudaMemcpyDeviceToHost), result);
+    PIPELINE_CUDA_CHECK(cudaMemcpy(signalB_out, d_B, bytes, cudaMemcpyDeviceToHost), result);
+    PIPELINE_CUDA_CHECK(cudaMemcpy(convOut, d_C, bytes, cudaMemcpyDeviceToHost), result);
+    PIPELINE_CUDA_CHECK(cudaEventRecord(evR1, 0), result);
+    PIPELINE_CUDA_CHECK(cudaEventSynchronize(evR1), result);
+    PIPELINE_CUDA_CHECK(cudaEventElapsedTime(&result.readbackMs, evR0, evR1), result);
+
+    result.success = true;
+
+pipeline_cleanup:
+    if (d_A)
+        cudaFree(d_A);
+    if (d_B)
+        cudaFree(d_B);
+    if (d_C)
+        cudaFree(d_C);
+
+    if (evA0)
+        cudaEventDestroy(evA0);
+    if (evA1)
+        cudaEventDestroy(evA1);
+    if (evB0)
+        cudaEventDestroy(evB0);
+    if (evB1)
+        cudaEventDestroy(evB1);
+    if (evC0)
+        cudaEventDestroy(evC0);
+    if (evC1)
+        cudaEventDestroy(evC1);
+    if (evR0)
+        cudaEventDestroy(evR0);
+    if (evR1)
+        cudaEventDestroy(evR1);
 }

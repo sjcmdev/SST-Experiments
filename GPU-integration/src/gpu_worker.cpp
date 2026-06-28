@@ -8,20 +8,23 @@
 #include <cstdio>
 
 static void computeCpuReference(
-    const std::vector<double>& signalA,
-    const std::vector<double>& signalB,
-    std::vector<double>& output,
+    const std::vector<double> &signalA,
+    const std::vector<double> &signalB,
+    std::vector<double> &output,
     int steps,
     double duration)
 {
     output.assign(steps, 0.0);
     const double dt = duration / static_cast<double>(steps - 1);
 
-    for (int n = 0; n < steps; ++n) {
+    for (int n = 0; n < steps; ++n)
+    {
         double sum = 0.0;
-        for (int k = 0; k < steps; ++k) {
+        for (int k = 0; k < steps; ++k)
+        {
             const int idx = n - k;
-            if (idx >= 0 && idx < steps) {
+            if (idx >= 0 && idx < steps)
+            {
                 sum += signalA[k] * signalB[idx];
             }
         }
@@ -39,41 +42,18 @@ GpuWorkerThread::~GpuWorkerThread()
     shutdown();
 }
 
-std::future<AsyncConvResult> GpuWorkerThread::submit(
-    const std::vector<double>& signalA,
-    const std::vector<double>& signalB,
-    const std::vector<double>& cpuSignalA,
-    const std::vector<double>& cpuSignalB,
-    int N,
-    int cpuSteps,
-    double duration,
-    KernelHandle kernelFunc)
+std::future<AsyncConvResult> GpuWorkerThread::submitTask(GpuTask task)
 {
-    if (m_busy.load() || m_exitRequested.load()) {
-        fprintf(stderr, "[GpuWorker] submit rejected - worker busy or stopping\n");
-        return std::future<AsyncConvResult>{};
-    }
-
-    GpuTask task;
-    task.signalA = signalA;
-    task.signalB = signalB;
-    task.cpuSignalA = cpuSignalA;
-    task.cpuSignalB = cpuSignalB;
-    task.N = N;
-    task.cpuSteps = cpuSteps;
-    task.duration = duration;
-    task.kernelFunc = kernelFunc;
-
-    std::future<AsyncConvResult> future = task.promise.get_future();
-
+    if (m_busy.load())
+        return {};
+    std::future<AsyncConvResult> fut = task.promise.get_future();
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_busy.store(true);
         m_taskQueue.push(std::move(task));
     }
     m_cv.notify_one();
-
-    return future;
+    return fut;
 }
 
 bool GpuWorkerThread::isBusy() const
@@ -94,7 +74,8 @@ void GpuWorkerThread::shutdown()
     }
     m_cv.notify_all();
 
-    if (m_thread.joinable()) {
+    if (m_thread.joinable())
+    {
         m_thread.join();
     }
 }
@@ -103,25 +84,29 @@ void GpuWorkerThread::workerLoop()
 {
     cudaStream_t stream = nullptr;
     cudaError_t streamError = cudaStreamCreate(&stream);
-    if (streamError == cudaSuccess) {
-        m_stream = reinterpret_cast<void*>(stream);
-    } else {
+    if (streamError == cudaSuccess)
+    {
+        m_stream = reinterpret_cast<void *>(stream);
+    }
+    else
+    {
         fprintf(stderr, "[GpuWorker] cudaStreamCreate failed: %s\n",
                 cudaGetErrorString(streamError));
     }
 
     m_initialized.store(true);
 
-    while (true) {
+    while (true)
+    {
         GpuTask task;
 
         {
             std::unique_lock<std::mutex> lock(m_mutex);
-            m_cv.wait(lock, [this] {
-                return !m_taskQueue.empty() || m_exitRequested.load();
-            });
+            m_cv.wait(lock, [this]
+                      { return !m_taskQueue.empty() || m_exitRequested.load(); });
 
-            if (m_exitRequested.load() && m_taskQueue.empty()) {
+            if (m_exitRequested.load() && m_taskQueue.empty())
+            {
                 break;
             }
 
@@ -130,51 +115,90 @@ void GpuWorkerThread::workerLoop()
         }
 
         AsyncConvResult asyncResult;
-        asyncResult.gpuOutput.assign(task.N, 0.0);
+        asyncResult.signalA.resize(task.N, 0.0);
+        asyncResult.signalB.resize(task.N, 0.0);
+        asyncResult.convOut.resize(task.N, 0.0);
 
-        auto cpuStart = std::chrono::steady_clock::now();
-        computeCpuReference(
-            task.cpuSignalA,
-            task.cpuSignalB,
-            asyncResult.cpuOutput,
-            task.cpuSteps,
-            task.duration);
-        auto cpuEnd = std::chrono::steady_clock::now();
-
-        const double gpuDt = task.duration / static_cast<double>(task.N - 1);
-        initCudaDriver();
-        runConvolution(
-            task.signalA.data(),
-            task.signalB.data(),
-            asyncResult.gpuOutput.data(),
+        // Faza 4: uruchom cały pipeline GPU
+        runPipeline(
+            task.genAFunc,
+            task.genBFunc,
+            task.convFunc,
             task.N,
-            gpuDt,
-            task.kernelFunc,
-            asyncResult.info);
+            task.dt,
+            asyncResult.signalA.data(),
+            asyncResult.signalB.data(),
+            asyncResult.convOut.data(),
+            asyncResult.info // PipelineResult
+        );
 
-        asyncResult.info.cpuReferenceMs =
-            std::chrono::duration<double, std::milli>(cpuEnd - cpuStart).count();
+        // CPU reference + walidacja (w watku GPU, nie blokuje UI)
+        if (asyncResult.info.success)
+        {
+            const int cpuSteps = std::max(2, task.cpuSteps);
+            asyncResult.cpuSignalA.assign(cpuSteps, 0.0);
+            asyncResult.cpuSignalB.assign(cpuSteps, 0.0);
+            asyncResult.cpuConvOut.assign(cpuSteps, 0.0);
 
-        if (asyncResult.info.success && task.cpuSteps == task.N) {
-            double maxError = 0.0;
-            for (int i = 0; i < task.N; ++i) {
-                maxError = std::max(maxError,
-                    std::abs(asyncResult.gpuOutput[i] - asyncResult.cpuOutput[i]));
+            auto cpuStart = std::chrono::high_resolution_clock::now();
+
+            computeSignalCpu(task.graphA, asyncResult.cpuSignalA.data(), cpuSteps, task.cpuDt);
+
+            if (task.graphB.isValid())
+            {
+                computeSignalCpu(task.graphB, asyncResult.cpuSignalB.data(), cpuSteps, task.cpuDt);
             }
-            asyncResult.validationAvailable = true;
-            asyncResult.info.maxAbsError = maxError;
-            asyncResult.info.validationPassed = (maxError < 1e-9);
-        }
+            else
+            {
+                for (int i = 0; i < cpuSteps; ++i)
+                {
+                    const double t = static_cast<double>(i) * task.cpuDt;
+                    asyncResult.cpuSignalB[i] = (t >= 0.60 && t < 0.80) ? 1.0 : 0.0;
+                }
+            }
 
+            for (int n = 0; n < cpuSteps; ++n)
+            {
+                double sum = 0.0;
+                for (int k = 0; k < cpuSteps; ++k)
+                {
+                    const int idx = n - k;
+                    if (idx >= 0 && idx < cpuSteps)
+                    {
+                        sum += asyncResult.cpuSignalA[k] * asyncResult.cpuSignalB[idx];
+                    }
+                }
+                asyncResult.cpuConvOut[n] = sum * task.cpuDt;
+            }
+
+            auto cpuEnd = std::chrono::high_resolution_clock::now();
+            asyncResult.cpuReferenceMs =
+                std::chrono::duration<double, std::milli>(cpuEnd - cpuStart).count();
+
+            if (cpuSteps == task.N)
+            {
+                double maxErr = 0.0;
+                for (int i = 0; i < task.N; ++i)
+                {
+                    const double err = std::fabs(asyncResult.convOut[i] - asyncResult.cpuConvOut[i]);
+                    if (err > maxErr)
+                    {
+                        maxErr = err;
+                    }
+                }
+                asyncResult.info.maxAbsError = static_cast<float>(maxErr);
+                asyncResult.validationAvailable = true;
+            }
+        }
         m_busy.store(false);
         task.promise.set_value(std::move(asyncResult));
     }
 
-    if (stream) {
+    if (stream)
+    {
         cudaStreamDestroy(stream);
         m_stream = nullptr;
     }
 
     m_initialized.store(false);
-    fprintf(stdout, "[GpuWorker] Worker stopped.\n");
 }

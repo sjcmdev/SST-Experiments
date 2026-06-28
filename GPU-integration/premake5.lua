@@ -1,39 +1,12 @@
-local cudaPath = os.getenv("CUDA_PATH")
-assert(
-    cudaPath ~= nil and cudaPath ~= "",
-    "\n\nERROR: CUDA_PATH is not set.\n" ..
-    "Install CUDA Toolkit and ensure CUDA_PATH environment variable is defined.\n" ..
-    "Expected format: C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\vX.Y\n"
-)
-
-local cudaGencodeOptions = table.concat({
-    "-gencode arch=compute_50,code=sm_50",
-    "-gencode arch=compute_52,code=sm_52",
-    "-gencode arch=compute_60,code=sm_60",
-    "-gencode arch=compute_61,code=sm_61",
-    "-gencode arch=compute_70,code=sm_70",
-    "-gencode arch=compute_75,code=sm_75",
-    "-gencode arch=compute_80,code=sm_80",
-    "-gencode arch=compute_86,code=sm_86",
-    "-gencode arch=compute_89,code=sm_89",
-    "-gencode arch=compute_90,code=sm_90",
-    "-gencode arch=compute_50,code=compute_50",
-}, " ")
-
 local vendorRoot = "../vendor"
-
-workspace "GPU-integration"
-    configurations { "Debug", "Release" }
-    platforms { "x64" }
-    startproject "GPU-integration"
 
 project "GPU-integration"
     location "."
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++17"
-    targetdir "build/bin/%{cfg.buildcfg}/%{prj.name}"
-    objdir "build/obj/%{cfg.buildcfg}/%{prj.name}"
+    targetdir(path.join("%{wks.location}", "build/bin/%{cfg.buildcfg}/%{prj.name}"))
+    objdir(path.join("%{wks.location}", "build/obj/%{cfg.buildcfg}/%{prj.name}"))
 
     files {
         "src/**.hpp",
@@ -48,6 +21,7 @@ project "GPU-integration"
         path.join(vendorRoot, "imgui/backends/imgui_impl_opengl3.cpp"),
         path.join(vendorRoot, "implot/implot.cpp"),
         path.join(vendorRoot, "implot/implot_items.cpp"),
+        path.join(vendorRoot, "imnodes/imnodes.cpp"),
         path.join(vendorRoot, "glad/src/glad.c"),
     }
 
@@ -57,6 +31,7 @@ project "GPU-integration"
         path.join(vendorRoot, "imgui/backends"),
         path.join(vendorRoot, "implot"),
         path.join(vendorRoot, "glad/include"),
+        path.join(vendorRoot, "imnodes"),
         path.join(vendorRoot, "glfw/include"),
         cudaPath .. "/include",
     }
@@ -78,7 +53,7 @@ project "GPU-integration"
     }
 
     postbuildcommands {
-        '{COPYFILE} "../vendor/glfw/lib-vc2022/glfw3.dll" "%{cfg.targetdir}"'
+        '{COPYFILE} "%{wks.location}/vendor/glfw/lib-vc2022/glfw3.dll" "%{cfg.targetdir}"'
     }
 
     filter "system:windows"
@@ -117,7 +92,7 @@ project "GPU-integration"
             .. ' -I"$(CUDA_PATH)/include"'
             .. ' -I"src"'
             .. ' -o "$(IntDir)%{file.basename}.obj"'
-            .. ' "%{file.relpath}"'
+            .. ' "%{file.abspath}"'
         }
 
     filter { "files:src/**.cu", "configurations:Release" }
@@ -132,7 +107,7 @@ project "GPU-integration"
             .. ' -I"$(CUDA_PATH)/include"'
             .. ' -I"src"'
             .. ' -o "$(IntDir)%{file.basename}.obj"'
-            .. ' "%{file.relpath}"'
+            .. ' "%{file.abspath}"'
         }
 
     filter {}

@@ -10,6 +10,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imnodes.h"
 #include "implot.h"
 
 #include <cstdio>
@@ -100,10 +101,15 @@ int main()
     // -----------------------------------------------------------------------
     ImPlot::CreateContext();
 
+    // imnodes
+    ImNodes::CreateContext();
+    ImNodes::StyleColorsDark(); // opcjonalnie
     // -----------------------------------------------------------------------
     // 5. Stan aplikacji i inicjalizacja CUDA
     // -----------------------------------------------------------------------
     AppState state;
+    state.graphAEditorCtx = ImNodes::EditorContextCreate();
+    state.graphBEditorCtx = ImNodes::EditorContextCreate();
     appInit(state); // query GPU + generacja sygnałów
 
     if (!state.cudaAvail)
@@ -160,9 +166,21 @@ int main()
     // -----------------------------------------------------------------------
     state.gpuWorker.shutdown();
 
+    if (state.graphAEditorCtx)
+    {
+        ImNodes::EditorContextFree(state.graphAEditorCtx);
+        state.graphAEditorCtx = nullptr;
+    }
+    if (state.graphBEditorCtx)
+    {
+        ImNodes::EditorContextFree(state.graphBEditorCtx);
+        state.graphBEditorCtx = nullptr;
+    }
+
     ImPlot::DestroyContext();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImNodes::DestroyContext();
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);

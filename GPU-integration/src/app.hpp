@@ -3,9 +3,13 @@
 #include "kernel_manager.hpp"   // NOWE — includuje cuda.h + nvrtc.h
 #include "cuda_interface.hpp"
 #include "gpu_worker.hpp"
+#include "signal_graph.hpp" // NOWE
+#include "code_gen.hpp"     // NOWE
 #include <future>
 #include <vector>
 #include <string>
+
+struct ImNodesEditorContext;
 
 // ---------------------------------------------------------------------------
 // Stałe konfiguracyjne
@@ -76,6 +80,22 @@ struct AppState {
     GpuWorkerThread gpuWorker;
     std::future<AsyncConvResult> gpuFuture;
     bool computing = false;
+
+    // Faza 4 : node grafe + generacja kodu
+    NodeGraph graphA;                             // NOWE: graf sygnału A
+    NodeGraph graphB;                             // NOWE: graf sygnału B (pusty w Fazie 4)
+    ImNodesEditorContext *graphAEditorCtx = nullptr;
+    ImNodesEditorContext *graphBEditorCtx = nullptr;
+    KernelManager signalKernelMgr;                // NOWE: manager kerneli sygnałów (genA+genB)
+    std::string generatedCode;                    // NOWE: ostatnio wygenerowany string CUDA
+    NvrtcCompileResult lastSignalCompile;         // NOWE
+    bool codeDirty = true;                        // NOWE: czy kod wymaga regeneracji
+
+    // Wyniki (readback z GPU)
+    std::vector<double> convOutput;
+
+    // Aktualne N i dt
+    double dt = 1.0 / (N - 1);
 };
 
 // ---------------------------------------------------------------------------
