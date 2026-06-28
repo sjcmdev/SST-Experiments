@@ -60,22 +60,29 @@ static void guiWindowCompute(AppState &appState)
     ImGui::Text("Duration: %.2f s", appState.T);
     ImGui::Separator();
 
-    const bool canRun = appState.cudaAvail && appState.kernelMgr.isReady();
-    if (!canRun)
-    {
-        ImGui::BeginDisabled();
-    }
-    const bool clicked = ImGui::Button("Run Convolution (GPU + CPU ref.)");
-    if (!canRun)
-    {
-        ImGui::EndDisabled();
-        ImGui::SameLine();
-        ImGui::TextDisabled(appState.cudaAvail ? "(kernel not ready)" : "(no GPU)");
-    }
+    if (appState.computing) {
+        const char* spinner[] = { "|", "/", "-", "\\" };
+        const int spinnerIndex = static_cast<int>(ImGui::GetTime() * 6.0) % 4;
+        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f),
+                           "%s Computing...", spinner[spinnerIndex]);
+    } else {
+        const bool canRun = appState.cudaAvail && appState.kernelMgr.isReady();
+        if (!canRun)
+        {
+            ImGui::BeginDisabled();
+        }
+        const bool clicked = ImGui::Button("Run Convolution (GPU + CPU ref.)");
+        if (!canRun)
+        {
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::TextDisabled(appState.cudaAvail ? "(kernel not ready)" : "(no GPU)");
+        }
 
-    if (clicked)
-    {
-        appRunComputation(appState);
+        if (clicked)
+        {
+            appRunComputation(appState);
+        }
     }
 
     if (appState.hasResult)
@@ -124,7 +131,8 @@ static void guiWindowCompute(AppState &appState)
         : appState.kernelFilePath.c_str());
     ImGui::Checkbox("Auto run after reload", &appState.kernelAutoRerun);
 
-    if (!appState.cudaAvail) {
+    const bool canReloadKernel = appState.cudaAvail && !appState.computing;
+    if (!canReloadKernel) {
         ImGui::BeginDisabled();
     }
     if (ImGui::Button("Reload kernel"))
@@ -132,9 +140,11 @@ static void guiWindowCompute(AppState &appState)
         if (!initCudaDriver()) {
             appState.lastCompile.success = false;
             appState.lastCompile.log = "Cannot initialize CUDA Driver context.";
-        } else if (appState.kernelFilePath.empty()) {
-            appState.kernelFilePath = "kernels/convolution.cu";
         } else {
+            if (appState.kernelFilePath.empty()) {
+                appState.kernelFilePath = "kernels/convolution.cu";
+            }
+
             std::string source = loadKernelSourceFromFile(appState.kernelFilePath);
             if (source.empty()) {
                 appState.lastCompile.success = false;
@@ -155,8 +165,12 @@ static void guiWindowCompute(AppState &appState)
             }
         }
     }
-    if (!appState.cudaAvail) {
+    if (!canReloadKernel) {
         ImGui::EndDisabled();
+    }
+    if (appState.computing) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(busy)");
     }
 
     if (appState.kernelMgr.isReady()) {
@@ -287,6 +301,7 @@ static void guiWindowPlot(const AppState &appState)
 
 void guiRender(AppState &appState)
 {
+    appPollAndSubmit(appState);
     ImGui::DockSpaceOverViewport();
     guiWindowDevice(appState);
     guiWindowCompute(appState);
@@ -294,5 +309,4 @@ void guiRender(AppState &appState)
     guiWindowSignalB(appState);
     guiWindowSettings();
     guiWindowPlot(appState);
-    appRecomputeIfDirty(appState);
 }

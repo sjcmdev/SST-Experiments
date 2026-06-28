@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 using KernelHandle = void*;
 
@@ -31,6 +32,13 @@ struct ConvolutionResult {
 
     double maxAbsError;
     bool validationPassed;
+};
+
+struct AsyncConvResult {
+    ConvolutionResult info = {};
+    std::vector<double> gpuOutput;
+    std::vector<double> cpuOutput;
+    bool validationAvailable = false;
 };
 
 bool queryCudaDevice(CudaDeviceInfo& info);

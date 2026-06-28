@@ -2,6 +2,8 @@
 #pragma once
 #include "kernel_manager.hpp"   // NOWE — includuje cuda.h + nvrtc.h
 #include "cuda_interface.hpp"
+#include "gpu_worker.hpp"
+#include <future>
 #include <vector>
 #include <string>
 
@@ -53,7 +55,7 @@ struct AppState {
     bool              hasResult  = false;
     bool              validationAvailable = false;
     bool              dataDirty = false;
-    bool              autoRecomputeDirty = false;
+    bool              autoRecomputeDirty = true;
 
     // Dane zdecymowane do wykresu (aktualizowane po każdym compute)
     std::vector<double> plotT;
@@ -69,6 +71,11 @@ struct AppState {
     std::string       kernelFilePath;       // ścieżka do pliku kernela na dysku
     NvrtcCompileResult lastCompile;         // wynik ostatniej kompilacji NVRTC
     bool              kernelAutoRerun = false;  // trigger po przeładowaniu kernela
+
+    // --- NOWE pola Fazy 3 ---
+    GpuWorkerThread gpuWorker;
+    std::future<AsyncConvResult> gpuFuture;
+    bool computing = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -88,6 +95,8 @@ bool appRunComputation(AppState& appState);
 void appMarkDirty(AppState& appState);
 
 void appRecomputeIfDirty(AppState& appState);
+
+void appPollAndSubmit(AppState& appState);
 
 // Aktualizacja zdecymowanych tablic do wykresu
 // Wywołać po appGenerateSignals() lub appRunComputation()

@@ -54,7 +54,7 @@ void appInit(AppState& appState)
 {
     appState.cudaAvail = queryCudaDevice(appState.deviceInfo);
     appGenerateSignals(appState);
-    appState.dataDirty = false;
+    appState.dataDirty = true;
 
     if (appState.cudaAvail && !initCudaDriver()) {
         fprintf(stderr, "[App] initCudaDriver() failed - NVRTC unavailable\n");
@@ -107,9 +107,55 @@ void appGenerateSignals(AppState& appState)
         appState.cpuSignalA,
         appState.cpuSignalB);
 
-    appState.signalC.assign(appState.N, 0.0);
-    appState.signalCref.assign(appState.cpuSteps, 0.0);
+    if (static_cast<int>(appState.signalC.size()) != appState.N) {
+        appState.signalC.assign(appState.N, 0.0);
+    }
+    if (static_cast<int>(appState.signalCref.size()) != appState.cpuSteps) {
+        appState.signalCref.assign(appState.cpuSteps, 0.0);
+    }
     appUpdatePlotData(appState);
+}
+
+static bool appSubmitComputation(AppState& appState)
+{
+    if (!appState.cudaAvail || !appState.kernelMgr.isReady()) {
+        appState.lastResult.success = false;
+        const char* message = !appState.cudaAvail
+            ? "No CUDA device available."
+            : "Kernel not ready. Reload kernel first.";
+        strncpy(appState.lastResult.errorMessage, message,
+                sizeof(appState.lastResult.errorMessage) - 1);
+        appState.hasResult = true;
+        appUpdatePlotData(appState);
+        return false;
+    }
+
+    if (appState.computing) {
+        return false;
+    }
+
+    appState.gpuFuture = appState.gpuWorker.submit(
+        appState.signalA,
+        appState.signalB,
+        appState.cpuSignalA,
+        appState.cpuSignalB,
+        appState.N,
+        appState.cpuSteps,
+        appState.T,
+        appState.kernelMgr.getFunction());
+
+    if (!appState.gpuFuture.valid()) {
+        appState.lastResult = {};
+        appState.lastResult.success = false;
+        strncpy(appState.lastResult.errorMessage, "GPU worker is busy.",
+                sizeof(appState.lastResult.errorMessage) - 1);
+        appState.hasResult = true;
+        return false;
+    }
+
+    appState.computing = true;
+    appState.dataDirty = false;
+    return true;
 }
 
 bool appRunComputation(AppState& appState)
@@ -118,84 +164,52 @@ bool appRunComputation(AppState& appState)
         appGenerateSignals(appState);
     }
 
-    appState.lastResult = {};
-    appState.lastResult.success = true;
-    appState.validationAvailable = false;
-
-    const int cpuSteps = appState.cpuSteps;
-    const double cpuDt = appState.T / static_cast<double>(cpuSteps - 1);
-    const double gpuDt = appState.T / static_cast<double>(appState.N - 1);
-
-    auto cpuStart = std::chrono::steady_clock::now();
-    for (int n = 0; n < cpuSteps; ++n) {
-        double sum = 0.0;
-
-        for (int k = 0; k < cpuSteps; ++k) {
-            const int bIdx = n - k;
-            if (bIdx >= 0 && bIdx < cpuSteps) {
-                sum += appState.cpuSignalA[k] * appState.cpuSignalB[bIdx];
-            }
-        }
-
-        appState.signalCref[n] = sum * cpuDt;
-    }
-    auto cpuEnd = std::chrono::steady_clock::now();
-    const double cpuMs = std::chrono::duration<double, std::milli>(
-        cpuEnd - cpuStart).count();
-
-    if (!appState.cudaAvail || !appState.kernelMgr.isReady()) {
-        appState.lastResult.success = false;
-        const char* message = !appState.cudaAvail
-            ? "No CUDA device available."
-            : "Kernel not ready. Reload kernel first.";
-        strncpy(appState.lastResult.errorMessage, message,
-                sizeof(appState.lastResult.errorMessage) - 1);
-        appState.lastResult.cpuReferenceMs = cpuMs;
-        appState.hasResult = true;
-        appState.dataDirty = false;
-        appUpdatePlotData(appState);
-        return false;
-    }
-
-    runConvolution(
-        appState.signalA.data(),
-        appState.signalB.data(),
-        appState.signalC.data(),
-        appState.N,
-        gpuDt,
-        appState.kernelMgr.getFunction(),
-        appState.lastResult);
-    appState.lastResult.cpuReferenceMs = cpuMs;
-
-    const bool ok = appState.lastResult.success;
-    if (ok && appState.cpuSteps == appState.N) {
-        double maxErr = 0.0;
-        for (int i = 0; i < appState.N; ++i) {
-            maxErr = std::max(maxErr, std::abs(appState.signalC[i] - appState.signalCref[i]));
-        }
-        appState.validationAvailable = true;
-        appState.lastResult.maxAbsError = maxErr;
-        appState.lastResult.validationPassed = (maxErr < APP_VALIDATION_TOL);
-    }
-
-    appState.hasResult = true;
-    appState.dataDirty = false;
-    appUpdatePlotData(appState);
-    return ok;
+    appState.dataDirty = true;
+    return appSubmitComputation(appState);
 }
 
 void appMarkDirty(AppState& appState)
 {
+    const bool outputSizeChanged =
+        static_cast<int>(appState.signalC.size()) != appState.N ||
+        static_cast<int>(appState.signalCref.size()) != appState.cpuSteps;
+
     appState.dataDirty = true;
-    appState.hasResult = false;
-    appState.validationAvailable = false;
+    if (outputSizeChanged) {
+        appState.hasResult = false;
+        appState.validationAvailable = false;
+    }
     appGenerateSignals(appState);
 }
 
 void appRecomputeIfDirty(AppState& appState)
 {
-    if (appState.autoRecomputeDirty && appState.dataDirty) {
-        appRunComputation(appState);
+    appPollAndSubmit(appState);
+}
+
+void appPollAndSubmit(AppState& appState)
+{
+    if (appState.computing && appState.gpuFuture.valid()) {
+        using namespace std::chrono;
+        if (appState.gpuFuture.wait_for(milliseconds(0)) == std::future_status::ready) {
+            AsyncConvResult asyncResult = appState.gpuFuture.get();
+
+            appState.signalC = std::move(asyncResult.gpuOutput);
+            appState.signalCref = std::move(asyncResult.cpuOutput);
+            appState.lastResult = asyncResult.info;
+            appState.validationAvailable = asyncResult.validationAvailable;
+            appState.hasResult = true;
+            appState.computing = false;
+            appUpdatePlotData(appState);
+        }
+    }
+
+    if (appState.autoRecomputeDirty &&
+        appState.dataDirty &&
+        !appState.computing &&
+        appState.cudaAvail &&
+        appState.kernelMgr.isReady()) {
+        appSubmitComputation(appState);
     }
 }
 

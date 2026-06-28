@@ -158,6 +158,8 @@ int main()
     // -----------------------------------------------------------------------
     // 7. Sprzątanie — odwrotna kolejność inicjalizacji
     // -----------------------------------------------------------------------
+    state.gpuWorker.shutdown();
+
     ImPlot::DestroyContext();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
