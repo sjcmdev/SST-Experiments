@@ -1162,8 +1162,11 @@ Po uruchomieniu `GpuExperiment.exe`:
 - [ ] Zamknięcie okna kończy aplikację bez hang
 
 
+sprawdź to repozytorium: https://github.com/sjcmdev/SST-Experiments.git
+na gałęzi: GPU-integration​
+najpierw clone potem ewentualne przełączenie
 
-modyfikacje względem orginału:
+wprowadziłem pewne modyfikacje:
 1) dodano modyfikację podstawowych parametrów sygnałów 
 2) dodano dirty flag i automatyczne przeładowanie wyniku splotu po zmianie parametrów sygnałów
 3) zrobiono jedną solucje i GPU-Integration z jednym vendor i tools

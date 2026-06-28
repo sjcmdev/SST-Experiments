@@ -1,7 +1,9 @@
 #include "app.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 
 static constexpr int MAX_PLOT_POINTS = 2048;
@@ -13,14 +15,14 @@ static int clampStepCount(int steps)
     return std::clamp(steps, MIN_STEPS, MAX_STEPS);
 }
 
-static double sampleGaussian(const GaussianSignalParams &params, double t)
+static double sampleGaussian(const GaussianSignalParams& params, double t)
 {
     const double sigma = std::max(params.sigma, 1e-6);
     const double x = t - params.center;
     return params.amplitude * std::exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
-static double sampleRectangle(const RectangleSignalParams &params, double t)
+static double sampleRectangle(const RectangleSignalParams& params, double t)
 {
     const double start = std::min(params.start, params.end);
     const double end = std::max(params.start, params.end);
@@ -28,11 +30,11 @@ static double sampleRectangle(const RectangleSignalParams &params, double t)
 }
 
 static void generateSignalBuffers(
-    const AppState &appState,
+    const AppState& appState,
     int steps,
-    std::vector<double> &timeAxis,
-    std::vector<double> &signalA,
-    std::vector<double> &signalB)
+    std::vector<double>& timeAxis,
+    std::vector<double>& signalA,
+    std::vector<double>& signalB)
 {
     const double dt = appState.T / static_cast<double>(steps - 1);
 
@@ -40,8 +42,7 @@ static void generateSignalBuffers(
     signalA.assign(steps, 0.0);
     signalB.assign(steps, 0.0);
 
-    for (int i = 0; i < steps; ++i)
-    {
+    for (int i = 0; i < steps; ++i) {
         const double t = i * dt;
         timeAxis[i] = t;
         signalA[i] = sampleGaussian(appState.signalAParams, t);
@@ -49,14 +50,45 @@ static void generateSignalBuffers(
     }
 }
 
-void appInit(AppState &appState)
+void appInit(AppState& appState)
 {
     appState.cudaAvail = queryCudaDevice(appState.deviceInfo);
     appGenerateSignals(appState);
     appState.dataDirty = false;
+
+    if (appState.cudaAvail && !initCudaDriver()) {
+        fprintf(stderr, "[App] initCudaDriver() failed - NVRTC unavailable\n");
+        appState.cudaAvail = false;
+    }
+
+    if (!appState.cudaAvail) {
+        return;
+    }
+
+    appState.kernelFilePath = "kernels/convolution.cu";
+    appState.kernelSource = loadKernelSourceFromFile(appState.kernelFilePath);
+
+    if (appState.kernelSource.empty()) {
+        appState.lastCompile.success = false;
+        appState.lastCompile.log = "Cannot read kernel file: " + appState.kernelFilePath;
+        fprintf(stderr, "[App] Missing kernel file: %s\n", appState.kernelFilePath.c_str());
+        return;
+    }
+
+    fprintf(stdout, "[App] Compiling startup kernel...\n");
+    appState.lastCompile = appState.kernelMgr.compile(
+        appState.kernelSource,
+        appState.deviceInfo.computeCapabilityMajor,
+        appState.deviceInfo.computeCapabilityMinor);
+
+    if (appState.lastCompile.success) {
+        fprintf(stdout, "[App] Kernel OK (%.1f ms)\n", appState.lastCompile.compileTimeMs);
+    } else {
+        fprintf(stderr, "[App] Kernel compile failed:\n%s\n", appState.lastCompile.log.c_str());
+    }
 }
 
-void appGenerateSignals(AppState &appState)
+void appGenerateSignals(AppState& appState)
 {
     appState.N = clampStepCount(appState.N);
     appState.cpuSteps = clampStepCount(appState.cpuSteps);
@@ -80,10 +112,9 @@ void appGenerateSignals(AppState &appState)
     appUpdatePlotData(appState);
 }
 
-bool appRunComputation(AppState &appState)
+bool appRunComputation(AppState& appState)
 {
-    if (appState.dataDirty)
-    {
+    if (appState.dataDirty) {
         appGenerateSignals(appState);
     }
 
@@ -92,19 +123,16 @@ bool appRunComputation(AppState &appState)
     appState.validationAvailable = false;
 
     const int cpuSteps = appState.cpuSteps;
-    const double cpuDt =
-        appState.T / static_cast<double>(cpuSteps - 1);
+    const double cpuDt = appState.T / static_cast<double>(cpuSteps - 1);
+    const double gpuDt = appState.T / static_cast<double>(appState.N - 1);
+
     auto cpuStart = std::chrono::steady_clock::now();
-    for (int n = 0; n < cpuSteps; ++n)
-    {
+    for (int n = 0; n < cpuSteps; ++n) {
         double sum = 0.0;
 
-        for (int k = 0; k < cpuSteps; ++k)
-        {
+        for (int k = 0; k < cpuSteps; ++k) {
             const int bIdx = n - k;
-
-            if (bIdx >= 0 && bIdx < cpuSteps)
-            {
+            if (bIdx >= 0 && bIdx < cpuSteps) {
                 sum += appState.cpuSignalA[k] * appState.cpuSignalB[bIdx];
             }
         }
@@ -112,38 +140,37 @@ bool appRunComputation(AppState &appState)
         appState.signalCref[n] = sum * cpuDt;
     }
     auto cpuEnd = std::chrono::steady_clock::now();
-    appState.lastResult.cpuReferenceMs = std::chrono::duration<double, std::milli>(
-                                             cpuEnd - cpuStart)
-                                             .count();
+    const double cpuMs = std::chrono::duration<double, std::milli>(
+        cpuEnd - cpuStart).count();
 
-    if (!appState.cudaAvail)
-    {
+    if (!appState.cudaAvail || !appState.kernelMgr.isReady()) {
         appState.lastResult.success = false;
-        strncpy(appState.lastResult.errorMessage,
-                "No CUDA device available.",
+        const char* message = !appState.cudaAvail
+            ? "No CUDA device available."
+            : "Kernel not ready. Reload kernel first.";
+        strncpy(appState.lastResult.errorMessage, message,
                 sizeof(appState.lastResult.errorMessage) - 1);
+        appState.lastResult.cpuReferenceMs = cpuMs;
         appState.hasResult = true;
         appState.dataDirty = false;
         appUpdatePlotData(appState);
         return false;
     }
 
-    const bool ok = runConvolution(
+    runConvolution(
         appState.signalA.data(),
         appState.signalB.data(),
         appState.signalC.data(),
         appState.N,
-        appState.T / static_cast<double>(appState.N - 1),
+        gpuDt,
+        appState.kernelMgr.getFunction(),
         appState.lastResult);
-    appState.lastResult.cpuReferenceMs = std::chrono::duration<double, std::milli>(
-                                             cpuEnd - cpuStart)
-                                             .count();
+    appState.lastResult.cpuReferenceMs = cpuMs;
 
-    if (ok && appState.cpuSteps == appState.N)
-    {
+    const bool ok = appState.lastResult.success;
+    if (ok && appState.cpuSteps == appState.N) {
         double maxErr = 0.0;
-        for (int i = 0; i < appState.N; ++i)
-        {
+        for (int i = 0; i < appState.N; ++i) {
             maxErr = std::max(maxErr, std::abs(appState.signalC[i] - appState.signalCref[i]));
         }
         appState.validationAvailable = true;
@@ -157,7 +184,7 @@ bool appRunComputation(AppState &appState)
     return ok;
 }
 
-void appMarkDirty(AppState &appState)
+void appMarkDirty(AppState& appState)
 {
     appState.dataDirty = true;
     appState.hasResult = false;
@@ -165,15 +192,14 @@ void appMarkDirty(AppState &appState)
     appGenerateSignals(appState);
 }
 
-void appRecomputeIfDirty(AppState &appState)
+void appRecomputeIfDirty(AppState& appState)
 {
-    if (appState.autoRecomputeDirty && appState.dataDirty)
-    {
+    if (appState.autoRecomputeDirty && appState.dataDirty) {
         appRunComputation(appState);
     }
 }
 
-void appUpdatePlotData(AppState &appState)
+void appUpdatePlotData(AppState& appState)
 {
     const int gpuStep = std::max(1, appState.N / MAX_PLOT_POINTS);
     const int gpuCount = (appState.N + gpuStep - 1) / gpuStep;
@@ -183,8 +209,7 @@ void appUpdatePlotData(AppState &appState)
     appState.plotB.resize(gpuCount);
     appState.plotC.resize(gpuCount);
 
-    for (int i = 0; i < gpuCount; ++i)
-    {
+    for (int i = 0; i < gpuCount; ++i) {
         const int idx = std::min(i * gpuStep, appState.N - 1);
         appState.plotT[i] = appState.timeAxis[idx];
         appState.plotA[i] = appState.signalA[idx];
@@ -198,8 +223,7 @@ void appUpdatePlotData(AppState &appState)
     appState.plotCpuT.resize(cpuCount);
     appState.plotCref.resize(cpuCount);
 
-    for (int i = 0; i < cpuCount; ++i)
-    {
+    for (int i = 0; i < cpuCount; ++i) {
         const int idx = std::min(i * cpuStep, appState.cpuSteps - 1);
         appState.plotCpuT[i] = appState.cpuTimeAxis[idx];
         appState.plotCref[i] = appState.signalCref[idx];

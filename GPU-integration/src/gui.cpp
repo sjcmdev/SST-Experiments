@@ -60,16 +60,17 @@ static void guiWindowCompute(AppState &appState)
     ImGui::Text("Duration: %.2f s", appState.T);
     ImGui::Separator();
 
-    if (!appState.cudaAvail)
+    const bool canRun = appState.cudaAvail && appState.kernelMgr.isReady();
+    if (!canRun)
     {
         ImGui::BeginDisabled();
     }
     const bool clicked = ImGui::Button("Run Convolution (GPU + CPU ref.)");
-    if (!appState.cudaAvail)
+    if (!canRun)
     {
         ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::TextDisabled("(no GPU)");
+        ImGui::TextDisabled(appState.cudaAvail ? "(kernel not ready)" : "(no GPU)");
     }
 
     if (clicked)
@@ -114,6 +115,67 @@ static void guiWindowCompute(AppState &appState)
                 ImGui::TextDisabled("Validation skipped: CPU/GPU steps differ.");
             }
         }
+    }
+
+    ImGui::Separator();
+    ImGui::TextUnformatted("Kernel NVRTC");
+    ImGui::Text("File: %s", appState.kernelFilePath.empty()
+        ? "kernels/convolution.cu"
+        : appState.kernelFilePath.c_str());
+    ImGui::Checkbox("Auto run after reload", &appState.kernelAutoRerun);
+
+    if (!appState.cudaAvail) {
+        ImGui::BeginDisabled();
+    }
+    if (ImGui::Button("Reload kernel"))
+    {
+        if (!initCudaDriver()) {
+            appState.lastCompile.success = false;
+            appState.lastCompile.log = "Cannot initialize CUDA Driver context.";
+        } else if (appState.kernelFilePath.empty()) {
+            appState.kernelFilePath = "kernels/convolution.cu";
+        } else {
+            std::string source = loadKernelSourceFromFile(appState.kernelFilePath);
+            if (source.empty()) {
+                appState.lastCompile.success = false;
+                appState.lastCompile.log = "Cannot read kernel file.";
+            } else {
+                appState.kernelSource = source;
+                appState.lastCompile = appState.kernelMgr.compile(
+                    appState.kernelSource,
+                    appState.deviceInfo.computeCapabilityMajor,
+                    appState.deviceInfo.computeCapabilityMinor);
+
+                if (appState.lastCompile.success) {
+                    appMarkDirty(appState);
+                    if (appState.kernelAutoRerun) {
+                        appRunComputation(appState);
+                    }
+                }
+            }
+        }
+    }
+    if (!appState.cudaAvail) {
+        ImGui::EndDisabled();
+    }
+
+    if (appState.kernelMgr.isReady()) {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.3f, 1.0f),
+                           "Status: OK (%.1f ms)", appState.lastCompile.compileTimeMs);
+    } else {
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f),
+                           "Status: no compiled kernel");
+    }
+
+    if (!appState.lastCompile.log.empty() && appState.lastCompile.log != "OK") {
+        ImGui::PushStyleColor(ImGuiCol_Text,
+            appState.lastCompile.success
+                ? ImVec4(1.0f, 1.0f, 0.5f, 1.0f)
+                : ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+        ImGui::BeginChild("##nvrtc_log", ImVec2(0, 90), true);
+        ImGui::TextWrapped("%s", appState.lastCompile.log.c_str());
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
     }
 
     ImGui::End();

@@ -1,5 +1,6 @@
 // app.h
 #pragma once
+#include "kernel_manager.hpp"   // NOWE — includuje cuda.h + nvrtc.h
 #include "cuda_interface.hpp"
 #include <vector>
 #include <string>
@@ -61,6 +62,13 @@ struct AppState {
     std::vector<double> plotB;
     std::vector<double> plotC;
     std::vector<double> plotCref;
+
+    // --- NOWE pola Fazy 2 ---
+    KernelManager     kernelMgr;            // obiekt zarządzający kompilacją NVRTC
+    std::string       kernelSource;         // bieżący kod źródłowy kernela (jako tekst)
+    std::string       kernelFilePath;       // ścieżka do pliku kernela na dysku
+    NvrtcCompileResult lastCompile;         // wynik ostatniej kompilacji NVRTC
+    bool              kernelAutoRerun = false;  // trigger po przeładowaniu kernela
 };
 
 // ---------------------------------------------------------------------------

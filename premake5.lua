@@ -23,84 +23,67 @@ local cudaGencodeOptions = table.concat({
     "-gencode arch=compute_50,code=compute_50",
 }, " ")
 
-local excludedRoots = {
-    [".git"] = true,
-    [".vs"] = true,
-    ["build"] = true,
-    ["vendor"] = true,
-    ["glad"] = true,
-    ["glfw-3.4.bin.WIN64"] = true,
-    ["tools"] = true,
-}
+local vendorRoot = "vendor"
 
 local function discoverExperiments()
-    local experiments = {}
+    local experimentDirs = {}
+
     for _, dir in ipairs(os.matchdirs("*")) do
-        local name = path.getname(dir)
-        if not excludedRoots[name] and os.isfile(path.join(dir, "src", "main.cpp")) then
-            table.insert(experiments, dir)
+        if os.isfile(path.join(dir, "src/main.cpp")) then
+            table.insert(experimentDirs, dir)
         end
     end
-    table.sort(experiments)
-    return experiments
+
+    table.sort(experimentDirs)
+    return experimentDirs
 end
 
-local experimentDirs = discoverExperiments()
-assert(#experimentDirs > 0, "No experiments found. Expected '<experiment>/src/main.cpp'.")
-
-workspace "SST-Experiments"
-    configurations { "Debug", "Release" }
-    platforms { "x64" }
-    startproject(path.getname(experimentDirs[1]))
-
-    filter "system:windows"
-        systemversion "latest"
-
-    filter {}
-
 local function configureExperimentProject(expDir)
-    local expName = path.getname(expDir)
+    local projectName = path.getname(expDir)
 
-    project(expName)
+    project(projectName)
         location(expDir)
         kind "ConsoleApp"
         language "C++"
         cppdialect "C++17"
-        targetdir "build/bin/%{cfg.buildcfg}/%{prj.name}"
-        objdir "build/obj/%{cfg.buildcfg}/%{prj.name}"
+        targetdir(path.join("%{wks.location}", "build/bin/%{cfg.buildcfg}/%{prj.name}"))
+        objdir(path.join("%{wks.location}", "build/obj/%{cfg.buildcfg}/%{prj.name}"))
 
         files {
             path.join(expDir, "src/**.hpp"),
             path.join(expDir, "src/**.cpp"),
             path.join(expDir, "src/**.cu"),
-            "vendor/imgui/imgui.cpp",
-            "vendor/imgui/imgui_draw.cpp",
-            "vendor/imgui/imgui_tables.cpp",
-            "vendor/imgui/imgui_widgets.cpp",
-            "vendor/imgui/backends/imgui_impl_glfw.cpp",
-            "vendor/imgui/backends/imgui_impl_opengl3.cpp",
-            "vendor/implot/implot.cpp",
-            "vendor/implot/implot_items.cpp",
-            "vendor/glad/src/glad.c",
+            path.join(expDir, "kernels/*.cu"),
+            path.join(vendorRoot, "imgui/imgui.cpp"),
+            path.join(vendorRoot, "imgui/imgui_draw.cpp"),
+            path.join(vendorRoot, "imgui/imgui_tables.cpp"),
+            path.join(vendorRoot, "imgui/imgui_widgets.cpp"),
+            path.join(vendorRoot, "imgui/backends/imgui_impl_glfw.cpp"),
+            path.join(vendorRoot, "imgui/backends/imgui_impl_opengl3.cpp"),
+            path.join(vendorRoot, "implot/implot.cpp"),
+            path.join(vendorRoot, "implot/implot_items.cpp"),
+            path.join(vendorRoot, "glad/src/glad.c"),
         }
 
         includedirs {
             path.join(expDir, "src"),
-            "vendor/imgui",
-            "vendor/imgui/backends",
-            "vendor/implot",
-            "vendor/glad/include",
-            "vendor/glfw/include",
+            path.join(vendorRoot, "imgui"),
+            path.join(vendorRoot, "imgui/backends"),
+            path.join(vendorRoot, "implot"),
+            path.join(vendorRoot, "glad/include"),
+            path.join(vendorRoot, "glfw/include"),
             cudaPath .. "/include",
         }
 
         libdirs {
-            "vendor/glfw/lib-vc2022",
+            path.join(vendorRoot, "glfw/lib-vc2022"),
             cudaPath .. "/lib/x64",
         }
 
         links {
             "cudart",
+            "nvrtc",
+            "cuda",
             "glfw3dll",
             "opengl32",
             "gdi32",
@@ -113,6 +96,7 @@ local function configureExperimentProject(expDir)
         }
 
         filter "system:windows"
+            systemversion "latest"
             defines { "_CRT_SECURE_NO_WARNINGS" }
 
         filter "configurations:Debug"
@@ -127,11 +111,14 @@ local function configureExperimentProject(expDir)
             optimize "Speed"
             defines { "NDEBUG" }
 
-        filter { "files:" .. path.join(expDir, "src/**.cu") }
+        filter { "files:**/src/**.cu" }
             buildmessage "NVCC: %{file.relpath}"
             buildoutputs { "$(IntDir)%{file.basename}.obj" }
 
-        filter { "files:" .. path.join(expDir, "src/**.cu"), "configurations:Debug" }
+        filter { "files:**/kernels/**.cu" }
+            buildaction "None"
+
+        filter { "files:**/src/**.cu", "configurations:Debug" }
             buildcommands {
                 '"$(CUDA_PATH)/bin/nvcc"'
                 .. ' -c'
@@ -142,12 +129,12 @@ local function configureExperimentProject(expDir)
                 .. ' ' .. cudaGencodeOptions
                 .. ' -Xcompiler "/MDd /Zi /FS"'
                 .. ' -I"$(CUDA_PATH)/include"'
-                .. ' -I"%{prj.location}/src"'
+                .. ' -I"' .. path.join("%{wks.location}", expDir, "src") .. '"'
                 .. ' -o "$(IntDir)%{file.basename}.obj"'
-                .. ' "%{file.relpath}"'
+                .. ' "%{file.abspath}"'
             }
 
-        filter { "files:" .. path.join(expDir, "src/**.cu"), "configurations:Release" }
+        filter { "files:**/src/**.cu", "configurations:Release" }
             buildcommands {
                 '"$(CUDA_PATH)/bin/nvcc"'
                 .. ' -c'
@@ -157,13 +144,27 @@ local function configureExperimentProject(expDir)
                 .. ' -Xcompiler "/MD"'
                 .. ' -DNDEBUG'
                 .. ' -I"$(CUDA_PATH)/include"'
-                .. ' -I"%{prj.location}/src"'
+                .. ' -I"' .. path.join("%{wks.location}", expDir, "src") .. '"'
                 .. ' -o "$(IntDir)%{file.basename}.obj"'
-                .. ' "%{file.relpath}"'
+                .. ' "%{file.abspath}"'
             }
 
         filter {}
 end
+
+local experimentDirs = discoverExperiments()
+assert(#experimentDirs > 0, "No experiments found. Expected '<experiment>/src/main.cpp'.")
+
+workspace "SST-Experiments"
+    location "."
+    configurations { "Debug", "Release" }
+    platforms { "x64" }
+    startproject(path.getname(experimentDirs[1]))
+
+    filter "system:windows"
+        systemversion "latest"
+
+    filter {}
 
 for _, expDir in ipairs(experimentDirs) do
     configureExperimentProject(expDir)
