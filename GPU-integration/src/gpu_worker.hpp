@@ -17,6 +17,7 @@ struct GpuTask
     double dt; // dt = 1.0 / (N - 1)
     int cpuSteps;
     double cpuDt;
+    bool skipCpuReference = false;
 
     KernelHandle genAFunc; // z signalKernelMgr.getFunction("generateSignalA")
     KernelHandle genBFunc; // z signalKernelMgr.getFunction("generateSignalB")

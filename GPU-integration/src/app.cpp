@@ -8,6 +8,7 @@
 static constexpr int MAX_PLOT_POINTS = 2048;
 static constexpr int MIN_STEPS = 2;
 static constexpr int MAX_STEPS = 65536;
+static constexpr int MAX_CPU_REFERENCE_STEPS = 8192;
 
 static int clampStepCount(int steps)
 {
@@ -137,6 +138,9 @@ static bool submitPipelineTask(AppState& appState)
     task.dt = appState.dt;
     task.cpuSteps = appState.cpuSteps;
     task.cpuDt = appState.T / static_cast<double>(appState.cpuSteps - 1);
+    task.skipCpuReference =
+        (appState.N > MAX_CPU_REFERENCE_STEPS) ||
+        (appState.cpuSteps > MAX_CPU_REFERENCE_STEPS);
     task.genAFunc = appState.signalKernelMgr.getFunction("generateSignalA");
     task.genBFunc = appState.signalKernelMgr.getFunction("generateSignalB");
     task.convFunc = appState.kernelMgr.getFunction("convolution");
@@ -243,6 +247,12 @@ void appUpdatePlotData(AppState& appState)
         appState.plotA[i] = appState.signalA.empty() ? 0.0 : appState.signalA[idx];
         appState.plotB[i] = appState.signalB.empty() ? 0.0 : appState.signalB[idx];
         appState.plotC[i] = appState.signalC.empty() ? 0.0 : appState.signalC[idx];
+    }
+
+    if (appState.signalCref.empty()) {
+        appState.plotCpuT.clear();
+        appState.plotCref.clear();
+        return;
     }
 
     const int cpuStep = std::max(1, appState.cpuSteps / MAX_PLOT_POINTS);

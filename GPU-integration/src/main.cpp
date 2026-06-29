@@ -99,11 +99,9 @@ int main()
     // -----------------------------------------------------------------------
     // 4. ImPlot — MUSI być po ImGui::CreateContext
     // -----------------------------------------------------------------------
-    ImPlot::CreateContext();
-
-    // imnodes
     ImNodes::CreateContext();
     ImNodes::StyleColorsDark(); // opcjonalnie
+    ImPlot::CreateContext();
     // -----------------------------------------------------------------------
     // 5. Stan aplikacji i inicjalizacja CUDA
     // -----------------------------------------------------------------------
@@ -177,10 +175,10 @@ int main()
         state.graphBEditorCtx = nullptr;
     }
 
+    ImNodes::DestroyContext();
     ImPlot::DestroyContext();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImNodes::DestroyContext();
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);

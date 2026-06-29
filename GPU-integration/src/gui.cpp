@@ -6,6 +6,10 @@
 #include <cstdio>
 #include <vector>
 
+static constexpr int GPU_N_EXP_MIN = 10;
+static constexpr int GPU_N_EXP_MAX = 16;
+static constexpr int CPU_REFERENCE_WARN_STEPS = 8192;
+
 static void guiWindowDevice(const AppState &appState);
 static void guiWindowCompute(AppState &appState);
 static void guiWindowSettings();
@@ -22,6 +26,16 @@ static void addNodeToGraph(NodeGraph &graph, NodeType type, bool &codeDirty, boo
 static bool sliderDouble(const char *label, double &value, double minValue, double maxValue, const char *format)
 {
     return ImGui::SliderScalar(label, ImGuiDataType_Double, &value, &minValue, &maxValue, format);
+}
+
+static int stepCountToLog2(int steps)
+{
+    int exp = GPU_N_EXP_MIN;
+    while (exp < GPU_N_EXP_MAX && (1 << exp) < steps)
+    {
+        ++exp;
+    }
+    return exp;
 }
 
 static void compileSignalGraphs(AppState &state)
@@ -106,11 +120,33 @@ static void guiWindowCompute(AppState &appState)
     ImGui::Begin("Convolution");
 
     bool changed = false;
-    changed |= ImGui::SliderInt("GPU steps", &appState.N, 128, 65536);
+    int gpuExp = stepCountToLog2(appState.N);
+    if (ImGui::SliderInt("log2(N) GPU", &gpuExp, GPU_N_EXP_MIN, GPU_N_EXP_MAX))
+    {
+        const int newN = 1 << gpuExp;
+        if (newN != appState.N)
+        {
+            appState.N = newN;
+            changed = true;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::Text("N = %d", appState.N);
+
     changed |= ImGui::SliderInt("CPU steps", &appState.cpuSteps, 128, 65536);
     if (changed)
     {
         appMarkDirty(appState);
+    }
+
+    if (appState.N > CPU_REFERENCE_WARN_STEPS || appState.cpuSteps > CPU_REFERENCE_WARN_STEPS)
+    {
+        const double estimateSeconds =
+            static_cast<double>(appState.cpuSteps) * static_cast<double>(appState.cpuSteps) / 1e9 * 2.0;
+        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f),
+                           "CPU reference skipped for sample counts > %d (~%.1f s avoided)",
+                           CPU_REFERENCE_WARN_STEPS,
+                           estimateSeconds);
     }
 
     ImGui::Checkbox("Auto recompute dirty data", &appState.autoRecomputeDirty);
@@ -167,7 +203,14 @@ static void guiWindowCompute(AppState &appState)
             ImGui::Text("Generate GPU signals: %8.3f ms", result.transferToGpuMs);
             ImGui::Text("GPU convolution:      %8.3f ms", result.kernelMs);
             ImGui::Text("GPU readback:         %8.3f ms", result.transferFromGpuMs);
-            ImGui::Text("CPU reference:        %8.3f ms", result.cpuReferenceMs);
+            if (result.maxAbsError < 0.0)
+            {
+                ImGui::TextDisabled("CPU reference:        skipped");
+            }
+            else
+            {
+                ImGui::Text("CPU reference:        %8.3f ms", result.cpuReferenceMs);
+            }
             ImGui::Separator();
 
             if (appState.validationAvailable)
@@ -177,6 +220,10 @@ static void guiWindowCompute(AppState &appState)
                                        ? ImVec4(0.2f, 1.f, 0.2f, 1.f)
                                        : ImVec4(1.f, 0.6f, 0.f, 1.f),
                                    result.validationPassed ? "Status: OK" : "Status: VALIDATION FAILED");
+            }
+            else if (result.maxAbsError < 0.0)
+            {
+                ImGui::TextDisabled("maxAbsError: (pominieto dla liczby probek > 8192)");
             }
             else
             {

@@ -133,7 +133,7 @@ void GpuWorkerThread::workerLoop()
         );
 
         // CPU reference + walidacja (w watku GPU, nie blokuje UI)
-        if (asyncResult.info.success)
+        if (asyncResult.info.success && !task.skipCpuReference)
         {
             const int cpuSteps = std::max(2, task.cpuSteps);
             asyncResult.cpuSignalA.assign(cpuSteps, 0.0);
@@ -189,6 +189,11 @@ void GpuWorkerThread::workerLoop()
                 asyncResult.info.maxAbsError = static_cast<float>(maxErr);
                 asyncResult.validationAvailable = true;
             }
+        }
+        else if (asyncResult.info.success && task.skipCpuReference)
+        {
+            asyncResult.info.maxAbsError = -1.0f;
+            asyncResult.validationAvailable = false;
         }
         m_busy.store(false);
         task.promise.set_value(std::move(asyncResult));
