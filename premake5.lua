@@ -22,17 +22,18 @@ cudaGencodeOptions = table.concat({
 }, " ")
 
 vendorRoot = "vendor"
-projectRoot = "GPU-integration"
+
 
 workspace "SST-Experiments"
     location "."
     configurations { "Debug", "Release" }
     platforms { "x64" }
-    startproject(projectRoot)
+    startproject("Simplex-Experiment")
 
     filter "system:windows"
         systemversion "latest"
 
     filter {}
 
-dofile(path.join(projectRoot, "premake5.lua"))
+dofile(path.join("GPU-integration", "premake5.lua"))
+dofile(path.join("simplex-experiment", "premake5.lua"))
