@@ -57,7 +57,8 @@ SANelderMead::SANelderMead(
     double degenerate_tol,
     bool sa_enabled,
     SAConfig sa_config,
-    unsigned int rng_seed)
+    unsigned int rng_seed,
+    bool trace_enabled)
     : all_params_(std::move(all_params))
     , objective_fn_(std::move(objective_fn))
     , alpha_(alpha)
@@ -68,6 +69,7 @@ SANelderMead::SANelderMead(
     , sa_enabled_(sa_enabled)
     , sa_config_(sa_config)
     , rng_(rng_seed)
+    , trace_enabled_(trace_enabled)
 {
     if (degenerate_tol_ <= 0.0)
         throw std::invalid_argument("SANelderMead: degenerate_tol must be > 0");
@@ -148,6 +150,26 @@ void SANelderMead::initSimplexAround(const std::vector<double>& start)
 }
 
 StepType SANelderMead::step()
+{
+    if (!trace_enabled_)
+        return stepInternal();
+
+    const SimplexState stateBefore = state_;
+    const StepType type = stepInternal();
+
+    TraceStep traceStep;
+    traceStep.type = type;
+    traceStep.state_before = stateBefore;
+    traceStep.state_after = state_;
+    traceStep.chi2_min = traceStep.state_after.chi2_values[traceStep.state_after.best_idx];
+    traceStep.T = stateBefore.T_current;
+    traceStep.iteration = state_.iteration;
+    trace_.push_back(std::move(traceStep));
+
+    return type;
+}
+
+StepType SANelderMead::stepInternal()
 {
     if (state_.vertices.empty())
         throw std::logic_error("SANelderMead::step called before initSimplex");
@@ -290,6 +312,19 @@ void SANelderMead::setCoolingSchedule(CoolingSchedule schedule)
     requireSAEnabled("setCoolingSchedule");
     sa_config_.schedule = schedule;
     validateSAConfig();
+}
+
+const TraceStep& SANelderMead::getTraceStep(int index) const
+{
+    if (index < 0 || index >= static_cast<int>(trace_.size()))
+        throw std::out_of_range("SANelderMead::getTraceStep: index out of range");
+    return trace_[static_cast<size_t>(index)];
+}
+
+void SANelderMead::clearTrace()
+{
+    trace_.clear();
+    trace_.shrink_to_fit();
 }
 
 FitResult SANelderMead::buildResult(bool converged, const std::string& stop_reason) const

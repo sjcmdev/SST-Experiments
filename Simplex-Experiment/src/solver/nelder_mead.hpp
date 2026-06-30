@@ -22,7 +22,8 @@ public:
         double degenerate_tol = 1e-12,
         bool sa_enabled = false,
         SAConfig sa_config = SAConfig{},
-        unsigned int rng_seed = 0);
+        unsigned int rng_seed = 0,
+        bool trace_enabled = false);
 
     static SANelderMead withSA(
         std::vector<FitParam> all_params,
@@ -49,6 +50,13 @@ public:
     bool isSAEnabled() const noexcept { return sa_enabled_; }
     int getSAAcceptedCount() const noexcept { return sa_accepted_count_; }
 
+    void setTraceEnabled(bool enabled) noexcept { trace_enabled_ = enabled; }
+    bool isTraceEnabled() const noexcept { return trace_enabled_; }
+    const std::vector<TraceStep>& getTrace() const noexcept { return trace_; }
+    const TraceStep& getTraceStep(int index) const;
+    int getTraceSize() const noexcept { return static_cast<int>(trace_.size()); }
+    void clearTrace();
+
 private:
     std::vector<FitParam> all_params_;
     std::vector<int> free_indices_;
@@ -72,6 +80,9 @@ private:
     std::uniform_real_distribution<double> uniform_dist_{0.0, 1.0};
     int sa_accepted_count_ = 0;
 
+    bool trace_enabled_ = false;
+    std::vector<TraceStep> trace_;
+
     void initSimplexAround(const std::vector<double>& start);
     void restart();
     bool isDegenerate() const;
@@ -88,6 +99,7 @@ private:
     double computeBoltzmannTemperature(int k) const;
     double computeGeometricTemperature(int k) const;
     void updateCooling();
+    StepType stepInternal();
 };
 
 std::vector<double> reflectPoint(
