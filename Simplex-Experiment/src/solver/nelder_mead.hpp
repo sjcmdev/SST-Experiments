@@ -23,7 +23,8 @@ public:
         bool sa_enabled = false,
         SAConfig sa_config = SAConfig{},
         unsigned int rng_seed = 0,
-        bool trace_enabled = false);
+        bool trace_enabled = false,
+        double chi2_scale = 1.0);
 
     static SANelderMead withSA(
         std::vector<FitParam> all_params,
@@ -33,7 +34,7 @@ public:
 
     void initSimplex();
     StepType step();
-    FitResult runUntilConvergence(int max_iter, double chi2_tol);
+    FitResult runUntilConvergence(int max_iter, double reduced_chi2_tol);
 
     const SimplexState& state() const noexcept { return state_; }
     int iteration() const noexcept { return state_.iteration; }
@@ -67,6 +68,7 @@ private:
     double rho_;
     double sigma_;
     double degenerate_tol_;
+    double chi2_scale_;
 
     std::vector<double> free_min_;
     std::vector<double> free_max_;

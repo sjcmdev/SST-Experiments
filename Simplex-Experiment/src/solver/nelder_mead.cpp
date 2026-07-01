@@ -58,7 +58,8 @@ SANelderMead::SANelderMead(
     bool sa_enabled,
     SAConfig sa_config,
     unsigned int rng_seed,
-    bool trace_enabled)
+    bool trace_enabled,
+    double chi2_scale)
     : all_params_(std::move(all_params))
     , objective_fn_(std::move(objective_fn))
     , alpha_(alpha)
@@ -66,6 +67,7 @@ SANelderMead::SANelderMead(
     , rho_(rho)
     , sigma_(sigma)
     , degenerate_tol_(degenerate_tol)
+    , chi2_scale_(std::max(chi2_scale, 1.0))
     , sa_enabled_(sa_enabled)
     , sa_config_(sa_config)
     , rng_(rng_seed)
@@ -230,7 +232,7 @@ StepType SANelderMead::stepInternal()
         bool acceptedBySA = false;
         if (sa_enabled_ && fReflected >= fWorst && sa_config_.T_current > 0.0)
         {
-            const double delta = fReflected - fWorst;
+            const double delta = (fReflected - fWorst) / chi2_scale_;
             if (std::isfinite(delta) && delta >= 0.0)
             {
                 const double probability = std::exp(-delta / sa_config_.T_current);
@@ -278,13 +280,13 @@ StepType SANelderMead::stepInternal()
     return applied;
 }
 
-FitResult SANelderMead::runUntilConvergence(int max_iter, double chi2_tol)
+FitResult SANelderMead::runUntilConvergence(int max_iter, double reduced_chi2_tol)
 {
     for (int iter = 0; iter < max_iter; ++iter)
     {
         step();
-        if (state_.chi2_values[state_.best_idx] < chi2_tol)
-            return buildResult(true, "tol");
+        if (state_.chi2_values[state_.best_idx] / chi2_scale_ < reduced_chi2_tol)
+            return buildResult(true, "reduced_chi2_tol");
     }
     return buildResult(false, "max_iter");
 }
@@ -332,6 +334,7 @@ FitResult SANelderMead::buildResult(bool converged, const std::string& stop_reas
     FitResult result;
     result.best_params = state_.vertices[state_.best_idx];
     result.chi2_min = state_.chi2_values[state_.best_idx];
+    result.reduced_chi2_min = result.chi2_min / chi2_scale_;
     result.delta_chi2 = 0.0;
     result.iterations = state_.iteration;
     result.converged = converged;

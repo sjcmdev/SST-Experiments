@@ -92,9 +92,10 @@ struct TraceStep
 struct FitResult
 {
     std::vector<double> best_params; ///< tylko free params, skala liniowa, len = N_free
-    double chi2_min;
-    double delta_chi2; ///< chi2_min - chi2_floor; 0.0 jeśli brak referencji
-    int iterations;
-    bool converged;
+    double chi2_min = 0.0;
+    double reduced_chi2_min = 0.0;
+    double delta_chi2 = 0.0; ///< chi2_min - chi2_floor; 0.0 jeśli brak referencji
+    int iterations = 0;
+    bool converged = false;
     std::string stop_reason; ///< "tol" | "max_iter" | "degenerate" | ...
 };
