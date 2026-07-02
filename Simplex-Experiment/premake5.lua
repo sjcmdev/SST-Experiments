@@ -10,7 +10,9 @@ project "Simplex-Experiment"
 
     files {
         "src/**.hpp",
+        "src/**.cuh",
         "src/**.cpp",
+        "src/**.cu",
         "vendor/lambertw/**.hpp",
         "vendor/lambertw/**.cpp",
         -- "src/**.cu",
@@ -32,6 +34,7 @@ project "Simplex-Experiment"
     includedirs {
         "src",
         "vendor/lambertw",
+        "vendor/lambertw-gpu",
         path.join(vendorRoot, "imgui"),
         path.join(vendorRoot, "imgui/backends"),
         path.join(vendorRoot, "implot"),
@@ -48,7 +51,7 @@ project "Simplex-Experiment"
     }
 
     links {
-        -- "cudart",
+        "cudart",
         -- "nvrtc",
         -- "cuda",
         "glfw3dll",
@@ -80,42 +83,44 @@ project "Simplex-Experiment"
         optimize "Speed"
         defines { "NDEBUG" }
 
-    -- filter { "files:src/**.cu" }
-    --     buildmessage "NVCC: %{file.relpath}"
-    --     buildoutputs { "$(IntDir)%{file.basename}.obj" }
+    filter { "files:src/**.cu" }
+        buildmessage "NVCC: %{file.relpath}"
+        buildoutputs { "$(IntDir)%{file.basename}.obj" }
 
     -- filter { "files:kernels/**.cu" }
     --     buildaction "None"
 
-    -- filter { "files:src/**.cu", "configurations:Debug" }
-    --     buildcommands {
-    --         '"$(CUDA_PATH)/bin/nvcc"'
-    --         .. ' -c'
-    --         .. ' -G'
-    --         .. ' -g'
-    --         .. ' -O0'
-    --         .. ' -std=c++17'
-    --         .. ' ' .. cudaGencodeOptions
-    --         .. ' -Xcompiler "/MDd /Zi /FS"'
-    --         .. ' -I"$(CUDA_PATH)/include"'
-    --         .. ' -I"src"'
-    --         .. ' -o "$(IntDir)%{file.basename}.obj"'
-    --         .. ' "%{file.abspath}"'
-    --     }
+    filter { "files:src/**.cu", "configurations:Debug" }
+        buildcommands {
+            '"$(CUDA_PATH)/bin/nvcc"'
+            .. ' -c'
+            .. ' -G'
+            .. ' -g'
+            .. ' -O0'
+            .. ' -std=c++17'
+            .. ' ' .. cudaGencodeOptions
+            .. ' -Xcompiler "/MDd /Zi /FS"'
+            .. ' -I"$(CUDA_PATH)/include"'
+            .. ' -I"src"'
+            .. ' -I"vendor/lambertw-gpu"'
+            .. ' -o "$(IntDir)%{file.basename}.obj"'
+            .. ' "%{file.abspath}"'
+        }
 
-    -- filter { "files:src/**.cu", "configurations:Release" }
-    --     buildcommands {
-    --         '"$(CUDA_PATH)/bin/nvcc"'
-    --         .. ' -c'
-    --         .. ' -O2'
-    --         .. ' -std=c++17'
-    --         .. ' ' .. cudaGencodeOptions
-    --         .. ' -Xcompiler "/MD"'
-    --         .. ' -DNDEBUG'
-    --         .. ' -I"$(CUDA_PATH)/include"'
-    --         .. ' -I"src"'
-    --         .. ' -o "$(IntDir)%{file.basename}.obj"'
-    --         .. ' "%{file.abspath}"'
-    --     }
+    filter { "files:src/**.cu", "configurations:Release" }
+        buildcommands {
+            '"$(CUDA_PATH)/bin/nvcc"'
+            .. ' -c'
+            .. ' -O2'
+            .. ' -std=c++17'
+            .. ' ' .. cudaGencodeOptions
+            .. ' -Xcompiler "/MD"'
+            .. ' -DNDEBUG'
+            .. ' -I"$(CUDA_PATH)/include"'
+            .. ' -I"src"'
+            .. ' -I"vendor/lambertw-gpu"'
+            .. ' -o "$(IntDir)%{file.basename}.obj"'
+            .. ' "%{file.abspath}"'
+        }
 
     filter {}

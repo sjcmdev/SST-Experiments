@@ -572,6 +572,42 @@ void guiTabSolver(AppState& state)
     ImGui::InputInt("Multi-fit max cases", &state.multi_fit.max_cases);
 }
 
+void guiTabGpu(AppState& state)
+{
+    const GpuDeviceStatus& device = state.gpu_state.device;
+    ImGui::Text("CUDA: %s", device.available ? "available" : "unavailable");
+    if (device.available)
+    {
+        ImGui::Text("Device: %s", device.name.c_str());
+        ImGui::Text("Compute capability: sm_%d%d", device.compute_major, device.compute_minor);
+    }
+    else
+    {
+        ImGui::TextWrapped("%s", device.message.c_str());
+    }
+
+    if (ImGui::Button("Re-query GPU"))
+        appInitGpu(state);
+    ImGui::SameLine();
+    if (!device.available)
+        ImGui::BeginDisabled();
+    if (ImGui::Button("Validate LambertW GPU"))
+        appValidateGpuLambertW(state);
+    if (!device.available)
+        ImGui::EndDisabled();
+
+    if (state.gpu_state.validation_ran)
+    {
+        const GpuLambertWValidationResult& validation = state.gpu_state.lambertw_validation;
+        ImGui::SeparatorText("LambertW validation");
+        ImGui::Text("Status: %s", validation.passed ? "PASS" : "FAIL");
+        ImGui::Text("Cases: %d", validation.cases_checked);
+        ImGui::Text("Max abs error: %.3e", validation.max_abs_error);
+        ImGui::Text("Max residual: %.3e", validation.max_residual);
+        ImGui::TextWrapped("%s", validation.message.c_str());
+    }
+}
+
 void guiPanelControls(AppState& state)
 {
     ImGui::Begin("Controls");
@@ -590,6 +626,11 @@ void guiPanelControls(AppState& state)
         if (ImGui::BeginTabItem("Solver"))
         {
             guiTabSolver(state);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("GPU"))
+        {
+            guiTabGpu(state);
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

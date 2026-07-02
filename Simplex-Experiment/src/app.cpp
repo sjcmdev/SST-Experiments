@@ -436,9 +436,36 @@ void appInit(AppState& appState)
     appState.solver_cfg.sa_config.T_current = 5.0;
     appState.solver_cfg.sa_config.schedule = CoolingSchedule::Geometric;
     appState.solver_cfg.sa_config.geometric_rate = 0.995;
+    appInitGpu(appState);
     appState.log(LogLevel::Info, "Application initialized");
     appRefreshDataFiles(appState);
     appGenerateIVCurve(appState);
+}
+
+void appInitGpu(AppState& appState)
+{
+    appState.gpu_state.device = gpuQueryDevice();
+    if (appState.gpu_state.device.available)
+    {
+        appState.log(LogLevel::Info,
+            "GPU detected: " + appState.gpu_state.device.name +
+            " sm_" + std::to_string(appState.gpu_state.device.compute_major) +
+            std::to_string(appState.gpu_state.device.compute_minor));
+        appValidateGpuLambertW(appState);
+    }
+    else
+    {
+        appState.log(LogLevel::Warn, appState.gpu_state.device.message);
+    }
+}
+
+void appValidateGpuLambertW(AppState& appState)
+{
+    appState.gpu_state.lambertw_validation = gpuValidateLambertW();
+    appState.gpu_state.validation_ran = true;
+    appState.log(
+        appState.gpu_state.lambertw_validation.passed ? LogLevel::Info : LogLevel::Error,
+        appState.gpu_state.lambertw_validation.message);
 }
 
 void appGenerateIVCurve(AppState& appState)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/gpu_backend.hpp"
 #include "solver/nelder_mead.hpp"
 #include "solver/solver_types.hpp"
 
@@ -172,6 +173,13 @@ struct BatchState
     double elapsed_s = 0.0;
 };
 
+struct GpuState
+{
+    GpuDeviceStatus device;
+    GpuLambertWValidationResult lambertw_validation;
+    bool validation_ran = false;
+};
+
 struct AppState
 {
     int active_tab = 0;
@@ -196,6 +204,7 @@ struct AppState
     MultiFitState multi_fit;
     BatchConfig batch_cfg;
     BatchState batch_state;
+    GpuState gpu_state;
     std::vector<LogEntry> log_entries;
 
     void log(LogLevel level, const std::string& message);
@@ -214,3 +223,5 @@ void appRunMultiFit(AppState& appState);
 void appInitStepSolver(AppState& appState);
 void appStepFit(AppState& appState, int steps);
 void appGenerateBatchPreview(AppState& appState);
+void appInitGpu(AppState& appState);
+void appValidateGpuLambertW(AppState& appState);
