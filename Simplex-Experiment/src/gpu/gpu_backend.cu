@@ -294,6 +294,180 @@ __global__ void simplexOneStepKernel(
     }
 }
 
+__global__ void simplexFullKernel(
+    GpuModelType model,
+    GpuParamLayout layout,
+    GpuNmConfig config,
+    const double* voltages,
+    const double* measured,
+    const double* sigma,
+    int point_count,
+    GpuMcResult* result)
+{
+    if (threadIdx.x != 0)
+        return;
+
+    double vertices[GpuSimplexStepResult::MAX_VERTICES][GpuSimplexStepResult::MAX_FREE] = {};
+    double chi2[GpuSimplexStepResult::MAX_VERTICES] = {};
+    int order[GpuSimplexStepResult::MAX_VERTICES] = {};
+    const int n_free = layout.n_free;
+    const int n_vertices = n_free + 1;
+    int iteration = 0;
+
+    for (int j = 0; j < n_free; ++j)
+        vertices[0][j] = layout.fixed_values[layout.free_to_total[j]];
+
+    for (int vertex = 1; vertex < n_vertices; ++vertex)
+    {
+        for (int j = 0; j < n_free; ++j)
+            vertices[vertex][j] = vertices[0][j];
+        const int dim = vertex - 1;
+        const double range = layout.max_bounds[dim] - layout.min_bounds[dim];
+        const double delta = 0.05 * range;
+        double candidate = vertices[0][dim] + delta;
+        if (candidate > layout.max_bounds[dim])
+            candidate = vertices[0][dim] - delta;
+        vertices[vertex][dim] = candidate;
+        clipToBounds_d(layout, vertices[vertex]);
+    }
+
+    for (int vertex = 0; vertex < n_vertices; ++vertex)
+        chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+
+    for (; iteration < config.max_iter; ++iteration)
+    {
+        sortOrder_d(chi2, n_vertices, order);
+        const int best = order[0];
+        if (chi2[best] / static_cast<double>(layout.dof) < config.reduced_chi2_tol)
+            break;
+
+        const int second_worst = order[n_vertices - 2];
+        const int worst = order[n_vertices - 1];
+
+        double maxDistanceSquared = 0.0;
+        for (int a = 0; a < n_vertices; ++a)
+        {
+            for (int b = a + 1; b < n_vertices; ++b)
+            {
+                double distanceSquared = 0.0;
+                for (int j = 0; j < n_free; ++j)
+                {
+                    const double delta = vertices[a][j] - vertices[b][j];
+                    distanceSquared += delta * delta;
+                }
+                maxDistanceSquared = fmax(maxDistanceSquared, distanceSquared);
+            }
+        }
+        if (sqrt(maxDistanceSquared) < config.degenerate_tol)
+        {
+            const double bestPoint[GpuSimplexStepResult::MAX_FREE] = {
+                vertices[best][0], vertices[best][1], vertices[best][2], vertices[best][3],
+                vertices[best][4], vertices[best][5], vertices[best][6], vertices[best][7]
+            };
+            for (int j = 0; j < n_free; ++j)
+                vertices[0][j] = bestPoint[j];
+            for (int vertex = 1; vertex < n_vertices; ++vertex)
+            {
+                for (int j = 0; j < n_free; ++j)
+                    vertices[vertex][j] = bestPoint[j];
+                const int dim = vertex - 1;
+                const double range = layout.max_bounds[dim] - layout.min_bounds[dim];
+                const double delta = 0.05 * range;
+                double candidate = bestPoint[dim] + delta;
+                if (candidate > layout.max_bounds[dim])
+                    candidate = bestPoint[dim] - delta;
+                vertices[vertex][dim] = candidate;
+                clipToBounds_d(layout, vertices[vertex]);
+            }
+            for (int vertex = 0; vertex < n_vertices; ++vertex)
+                chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+            continue;
+        }
+
+        double centroid[GpuSimplexStepResult::MAX_FREE] = {};
+        for (int vertex = 0; vertex < n_vertices; ++vertex)
+        {
+            if (vertex == worst)
+                continue;
+            for (int j = 0; j < n_free; ++j)
+                centroid[j] += vertices[vertex][j];
+        }
+        for (int j = 0; j < n_free; ++j)
+            centroid[j] /= static_cast<double>(n_free);
+
+        double reflected[GpuSimplexStepResult::MAX_FREE] = {};
+        for (int j = 0; j < n_free; ++j)
+            reflected[j] = centroid[j] + config.alpha * (centroid[j] - vertices[worst][j]);
+        clipToBounds_d(layout, reflected);
+        const double f_reflected = evaluateChi2Serial_d(model, layout, reflected, voltages, measured, sigma, point_count);
+
+        if (f_reflected < chi2[best])
+        {
+            double expanded[GpuSimplexStepResult::MAX_FREE] = {};
+            for (int j = 0; j < n_free; ++j)
+                expanded[j] = centroid[j] + config.gamma * (reflected[j] - centroid[j]);
+            clipToBounds_d(layout, expanded);
+            const double f_expanded = evaluateChi2Serial_d(model, layout, expanded, voltages, measured, sigma, point_count);
+            if (f_expanded < f_reflected)
+            {
+                for (int j = 0; j < n_free; ++j)
+                    vertices[worst][j] = expanded[j];
+                chi2[worst] = f_expanded;
+            }
+            else
+            {
+                for (int j = 0; j < n_free; ++j)
+                    vertices[worst][j] = reflected[j];
+                chi2[worst] = f_reflected;
+            }
+        }
+        else if (f_reflected < chi2[second_worst])
+        {
+            for (int j = 0; j < n_free; ++j)
+                vertices[worst][j] = reflected[j];
+            chi2[worst] = f_reflected;
+        }
+        else
+        {
+            double contracted[GpuSimplexStepResult::MAX_FREE] = {};
+            for (int j = 0; j < n_free; ++j)
+                contracted[j] = centroid[j] + config.rho * (vertices[worst][j] - centroid[j]);
+            clipToBounds_d(layout, contracted);
+            const double f_contracted = evaluateChi2Serial_d(model, layout, contracted, voltages, measured, sigma, point_count);
+            if (f_contracted < chi2[worst])
+            {
+                for (int j = 0; j < n_free; ++j)
+                    vertices[worst][j] = contracted[j];
+                chi2[worst] = f_contracted;
+            }
+            else
+            {
+                for (int vertex = 0; vertex < n_vertices; ++vertex)
+                {
+                    if (vertex == best)
+                        continue;
+                    for (int j = 0; j < n_free; ++j)
+                        vertices[vertex][j] = vertices[best][j] + config.sigma_shrink * (vertices[vertex][j] - vertices[best][j]);
+                    clipToBounds_d(layout, vertices[vertex]);
+                    chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+                }
+            }
+        }
+    }
+
+    sortOrder_d(chi2, n_vertices, order);
+    const int best = order[0];
+    for (int j = 0; j < n_free; ++j)
+        result->best_free_params[j] = vertices[best][j];
+    result->chi2_min = chi2[best];
+    result->reduced_chi2_min = chi2[best] / static_cast<double>(layout.dof);
+    result->ref_reduced_chi2 = 0.0;
+    result->delta_reduced_chi2 = result->reduced_chi2_min;
+    result->iterations = iteration;
+    result->converged = result->reduced_chi2_min < config.reduced_chi2_tol ? 1 : 0;
+    result->n_free = n_free;
+}
+
 std::string cudaErrorMessage(cudaError_t error)
 {
     return std::string(cudaGetErrorString(error));
@@ -756,6 +930,143 @@ GpuNumericValidationResult gpuValidateSimplexOneStep()
 
 cuda_failure:
     result.message = "CUDA simplex one-step validation failed: " + cudaErrorMessage(error);
+    freeDevice(deviceVoltages);
+    freeDevice(deviceMeasured);
+    freeDevice(deviceSigma);
+    freeDevice(deviceResult);
+    return result;
+}
+
+GpuNumericValidationResult gpuValidateSimplexFull()
+{
+    GpuNumericValidationResult result;
+    const GpuDeviceStatus device = gpuQueryDevice();
+    result.cuda_available = device.available;
+    if (!device.available)
+    {
+        result.message = device.message;
+        return result;
+    }
+
+    constexpr int pointCount = 24;
+    constexpr int maxIter = 24;
+    std::vector<double> voltages(pointCount);
+    std::vector<double> measured(pointCount);
+    std::vector<double> sigma(pointCount, 1e-2);
+    const double trueParams[] = {1.0e-10, 1.5, 0.1, 1000.0};
+    double startParams[] = {1.2e-10, 1.45, 0.2, 900.0};
+    const double minBounds[] = {1e-15, 0.5, 0.0, 10.0};
+    const double maxBounds[] = {1e-5, 3.0, 10.0, 1e6};
+    for (int i = 0; i < pointCount; ++i)
+    {
+        voltages[i] = -0.3 + 0.9 * static_cast<double>(i) / static_cast<double>(pointCount - 1);
+        measured[i] = evaluateDiodeIV4(voltages[i], trueParams, 300.0);
+    }
+
+    std::vector<FitParam> fitParams = {
+        FitParam("I0", startParams[0], minBounds[0], maxBounds[0], true),
+        FitParam("A", startParams[1], minBounds[1], maxBounds[1], true),
+        FitParam("Rs", startParams[2], minBounds[2], maxBounds[2], true),
+        FitParam("Rsh", startParams[3], minBounds[3], maxBounds[3], true),
+    };
+    auto objective = makeDiodeIVObjective(
+        fitParams,
+        [](double voltage, const double* params) { return evaluateDiodeIV4(voltage, params, 300.0); },
+        voltages,
+        measured,
+        sigma);
+    SANelderMead cpuSolver(fitParams, objective, 1.0, 2.0, 0.5, 0.5, 1e-12, false, SAConfig{}, 0, false, std::max(1, pointCount - 4));
+    cpuSolver.initSimplex();
+    const FitResult cpuResult = cpuSolver.runUntilConvergence(maxIter, 1e-300);
+
+    GpuParamLayout layout = makeFourParamLayout(startParams, minBounds, maxBounds, pointCount);
+    GpuNmConfig config;
+    config.max_iter = maxIter;
+    config.reduced_chi2_tol = 1e-300;
+
+    double* deviceVoltages = nullptr;
+    double* deviceMeasured = nullptr;
+    double* deviceSigma = nullptr;
+    GpuMcResult* deviceResult = nullptr;
+    GpuMcResult gpuResult;
+    cudaError_t error = cudaMalloc(&deviceVoltages, voltages.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceMeasured, measured.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceSigma, sigma.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceResult, sizeof(GpuMcResult));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceVoltages, voltages.data(), voltages.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceMeasured, measured.data(), measured.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceSigma, sigma.data(), sigma.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    simplexFullKernel<<<1, 32>>>(GpuModelType::Diode4P, layout, config, deviceVoltages, deviceMeasured, deviceSigma, pointCount, deviceResult);
+    error = cudaGetLastError();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaDeviceSynchronize();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(&gpuResult, deviceResult, sizeof(GpuMcResult), cudaMemcpyDeviceToHost);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    result.passed = true;
+    result.cases_checked = static_cast<int>(cpuResult.best_params.size()) + 3;
+    result.passed = result.passed && gpuResult.n_free == static_cast<int>(cpuResult.best_params.size());
+    result.passed = result.passed && gpuResult.iterations == cpuResult.iterations;
+    {
+        const double chiAbsError = std::abs(gpuResult.chi2_min - cpuResult.chi2_min);
+        const double chiRelError = relativeError(gpuResult.chi2_min, cpuResult.chi2_min);
+        result.max_abs_error = std::max(result.max_abs_error, chiAbsError);
+        result.max_rel_error = std::max(result.max_rel_error, chiRelError);
+        result.passed = result.passed && chiRelError < 1e-7;
+    }
+    {
+        const double rchiAbsError = std::abs(gpuResult.reduced_chi2_min - cpuResult.reduced_chi2_min);
+        const double rchiRelError = relativeError(gpuResult.reduced_chi2_min, cpuResult.reduced_chi2_min);
+        result.max_abs_error = std::max(result.max_abs_error, rchiAbsError);
+        result.max_rel_error = std::max(result.max_rel_error, rchiRelError);
+        result.passed = result.passed && rchiRelError < 1e-7;
+    }
+    for (int j = 0; j < gpuResult.n_free; ++j)
+    {
+        const double absError = std::abs(gpuResult.best_free_params[j] - cpuResult.best_params[static_cast<size_t>(j)]);
+        const double relError = relativeError(gpuResult.best_free_params[j], cpuResult.best_params[static_cast<size_t>(j)]);
+        result.max_abs_error = std::max(result.max_abs_error, absError);
+        result.max_rel_error = std::max(result.max_rel_error, relError);
+        result.passed = result.passed && relError < 1e-7;
+    }
+
+    {
+        std::ostringstream stream;
+        stream << (result.passed ? "GPU full simplex validation PASS" : "GPU full simplex validation FAIL")
+               << ": iterations=" << gpuResult.iterations
+               << ", chi2_gpu=" << gpuResult.chi2_min
+               << ", chi2_cpu=" << cpuResult.chi2_min
+               << ", max_abs_error=" << result.max_abs_error
+               << ", max_rel_error=" << result.max_rel_error;
+        result.message = stream.str();
+    }
+    freeDevice(deviceVoltages);
+    freeDevice(deviceMeasured);
+    freeDevice(deviceSigma);
+    freeDevice(deviceResult);
+    return result;
+
+cuda_failure:
+    result.message = "CUDA full simplex validation failed: " + cudaErrorMessage(error);
     freeDevice(deviceVoltages);
     freeDevice(deviceMeasured);
     freeDevice(deviceSigma);

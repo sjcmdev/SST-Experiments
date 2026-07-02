@@ -612,12 +612,15 @@ void guiTabGpu(AppState& state)
         const GpuNumericValidationResult& current = state.gpu_state.current_validation;
         const GpuNumericValidationResult& noise = state.gpu_state.noise_validation;
         const GpuNumericValidationResult& simplex = state.gpu_state.simplex_validation;
+        const GpuNumericValidationResult& simplexFull = state.gpu_state.simplex_full_validation;
         if (current.cases_checked > 0)
             ImGui::TextWrapped("%s", current.message.c_str());
         if (noise.cases_checked > 0)
             ImGui::TextWrapped("%s", noise.message.c_str());
         if (simplex.cases_checked > 0)
             ImGui::TextWrapped("%s", simplex.message.c_str());
+        if (simplexFull.cases_checked > 0)
+            ImGui::TextWrapped("%s", simplexFull.message.c_str());
     }
 }
 

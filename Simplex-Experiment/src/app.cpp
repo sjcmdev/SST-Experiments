@@ -486,6 +486,11 @@ void appValidateGpuCore(AppState& appState)
     appState.log(
         appState.gpu_state.simplex_validation.passed ? LogLevel::Info : LogLevel::Error,
         appState.gpu_state.simplex_validation.message);
+
+    appState.gpu_state.simplex_full_validation = gpuValidateSimplexFull();
+    appState.log(
+        appState.gpu_state.simplex_full_validation.passed ? LogLevel::Info : LogLevel::Error,
+        appState.gpu_state.simplex_full_validation.message);
 }
 
 void appGenerateIVCurve(AppState& appState)

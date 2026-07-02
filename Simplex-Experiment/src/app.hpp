@@ -180,6 +180,7 @@ struct GpuState
     GpuNumericValidationResult current_validation;
     GpuNumericValidationResult noise_validation;
     GpuNumericValidationResult simplex_validation;
+    GpuNumericValidationResult simplex_full_validation;
     bool validation_ran = false;
 };
 

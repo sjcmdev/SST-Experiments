@@ -38,3 +38,4 @@ GpuLambertWValidationResult gpuValidateLambertW();
 GpuNumericValidationResult gpuValidateDiodeCurrent();
 GpuNumericValidationResult gpuValidateNoise();
 GpuNumericValidationResult gpuValidateSimplexOneStep();
+GpuNumericValidationResult gpuValidateSimplexFull();
