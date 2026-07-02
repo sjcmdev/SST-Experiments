@@ -182,6 +182,22 @@ struct GpuState
     GpuNumericValidationResult simplex_validation;
     GpuNumericValidationResult simplex_full_validation;
     bool validation_ran = false;
+    int mc_samples = 256;
+    int mc_max_iter = 500;
+    double mc_noise_pct = 1.0;
+    unsigned int mc_noise_seed = 42;
+    double mc_reduced_chi2_tol = 1.0;
+    std::vector<GpuMcResult> mc_results;
+    std::vector<std::vector<double>> mc_full_params;
+    int mc_n_free = 0;
+    int mc_dof = 1;
+    bool mc_has_results = false;
+    std::string mc_status;
+    double mc_upload_ms = 0.0;
+    double mc_noise_ms = 0.0;
+    double mc_simplex_ms = 0.0;
+    double mc_download_ms = 0.0;
+    double mc_total_ms = 0.0;
 };
 
 struct AppState
@@ -230,3 +246,5 @@ void appGenerateBatchPreview(AppState& appState);
 void appInitGpu(AppState& appState);
 void appValidateGpuLambertW(AppState& appState);
 void appValidateGpuCore(AppState& appState);
+void appRunGpuMonteCarlo(AppState& appState);
+void appApplyMgrFigure313Preset(AppState& appState);

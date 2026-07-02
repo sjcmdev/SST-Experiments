@@ -17,6 +17,7 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <random>
 #include <stdexcept>
 #include <sstream>
@@ -38,6 +39,29 @@ std::vector<double> currentParamValues(const ModelConfig& model)
     for (const FitParam& param : model.params)
         values.push_back(param.value);
     return values;
+}
+
+GpuParamLayout buildGpuLayout(const ModelConfig& model, int pointCount)
+{
+    GpuParamLayout layout;
+    layout.n_total = static_cast<int>(model.params.size());
+    layout.T = model.T;
+    int freeIndex = 0;
+    for (int i = 0; i < layout.n_total && i < GpuParamLayout::MAX_PARAMS; ++i)
+    {
+        const FitParam& param = model.params[static_cast<size_t>(i)];
+        layout.fixed_values[i] = param.value;
+        if (param.free)
+        {
+            layout.free_to_total[freeIndex] = i;
+            layout.min_bounds[freeIndex] = param.min;
+            layout.max_bounds[freeIndex] = param.max;
+            ++freeIndex;
+        }
+    }
+    layout.n_free = freeIndex;
+    layout.dof = std::max(1, pointCount - layout.n_free);
+    return layout;
 }
 
 bool isLogStartParam(const std::string& name)
@@ -491,6 +515,91 @@ void appValidateGpuCore(AppState& appState)
     appState.log(
         appState.gpu_state.simplex_full_validation.passed ? LogLevel::Info : LogLevel::Error,
         appState.gpu_state.simplex_full_validation.message);
+}
+
+void appRunGpuMonteCarlo(AppState& appState)
+{
+    if (!appState.gpu_state.device.available)
+        appInitGpu(appState);
+    if (!appState.gpu_state.device.available)
+    {
+        appState.log(LogLevel::Error, appState.gpu_state.device.message);
+        return;
+    }
+    if (!appState.iv_data.has_model || appState.iv_data.V.empty())
+        appGenerateIVCurve(appState);
+
+    GpuMonteCarloRequest request;
+    request.model_type = appState.model.use_6param ? GpuModelType::Diode6P : GpuModelType::Diode4P;
+    request.layout = buildGpuLayout(appState.model, static_cast<int>(appState.iv_data.V.size()));
+    request.nm_config.alpha = appState.solver_cfg.nm_alpha;
+    request.nm_config.gamma = appState.solver_cfg.nm_gamma;
+    request.nm_config.rho = appState.solver_cfg.nm_rho;
+    request.nm_config.sigma_shrink = appState.solver_cfg.nm_sigma;
+    request.nm_config.degenerate_tol = appState.solver_cfg.degenerate_tol;
+    request.nm_config.max_iter = std::max(1, appState.gpu_state.mc_max_iter);
+    request.nm_config.reduced_chi2_tol = appState.gpu_state.mc_reduced_chi2_tol;
+    request.voltages = appState.iv_data.V;
+    request.true_current = appState.iv_data.I_model;
+    request.n_samples = std::clamp(appState.gpu_state.mc_samples, 1, 100000);
+    request.noise_pct = std::clamp(appState.gpu_state.mc_noise_pct, 0.0, 100.0);
+    request.noise_seed = appState.gpu_state.mc_noise_seed;
+
+    appState.gpu_state.mc_status = "GPU MC running...";
+    appState.gpu_state.mc_has_results = false;
+    GpuMonteCarloOutput output = gpuRunMonteCarlo(request);
+    appState.gpu_state.mc_status = output.message;
+    appState.gpu_state.mc_upload_ms = output.upload_ms;
+    appState.gpu_state.mc_noise_ms = output.noise_ms;
+    appState.gpu_state.mc_simplex_ms = output.simplex_ms;
+    appState.gpu_state.mc_download_ms = output.download_ms;
+    appState.gpu_state.mc_total_ms = output.total_ms;
+    appState.log(output.success ? LogLevel::Info : LogLevel::Error, output.message);
+    if (!output.success)
+        return;
+
+    appState.gpu_state.mc_results = std::move(output.results);
+    double bestReducedChi2 = std::numeric_limits<double>::infinity();
+    for (const GpuMcResult& result : appState.gpu_state.mc_results)
+        bestReducedChi2 = std::min(bestReducedChi2, result.reduced_chi2_min);
+    if (std::isfinite(bestReducedChi2))
+    {
+        for (GpuMcResult& result : appState.gpu_state.mc_results)
+            result.delta_reduced_chi2 = result.reduced_chi2_min - bestReducedChi2;
+    }
+    appState.gpu_state.mc_full_params.clear();
+    appState.gpu_state.mc_full_params.reserve(appState.gpu_state.mc_results.size());
+    appState.gpu_state.mc_n_free = request.layout.n_free;
+    appState.gpu_state.mc_dof = request.layout.dof;
+    for (const GpuMcResult& result : appState.gpu_state.mc_results)
+    {
+        std::vector<double> full(appState.model.params.size());
+        for (size_t i = 0; i < appState.model.params.size(); ++i)
+            full[i] = appState.model.params[i].value;
+        for (int j = 0; j < result.n_free; ++j)
+            full[static_cast<size_t>(request.layout.free_to_total[j])] = result.best_free_params[j];
+        appState.gpu_state.mc_full_params.push_back(std::move(full));
+    }
+    appState.gpu_state.mc_has_results = true;
+}
+
+void appApplyMgrFigure313Preset(AppState& appState)
+{
+    appState.model = ModelConfig::default4param();
+    appState.model.T = 300.0;
+    appState.model.V_min = -0.5;
+    appState.model.V_max = 0.7;
+    appState.model.N_points = 100;
+    appState.model.params[0] = FitParam("I0", 1.5e-9, 1.0e-10, 1.0e-8, true);
+    appState.model.params[1] = FitParam("A", 2.0, 1.0, 3.0, true);
+    appState.model.params[2] = FitParam("Rs", 15.0, 0.0, 100.0, false);
+    appState.model.params[3] = FitParam("Rsh", 50000.0, 100.0, 1.0e6, false);
+    appState.gpu_state.mc_noise_pct = 1.0;
+    appState.gpu_state.mc_samples = 5000;
+    appState.gpu_state.mc_max_iter = 500;
+    appState.gpu_state.mc_reduced_chi2_tol = 1.0;
+    appGenerateIVCurve(appState);
+    appState.log(LogLevel::Info, "Applied MGR Fig. 3.13 preset: I0=1.5e-9, A=2, Rsh=50000, Rs=15, noise=1%, MC=5000");
 }
 
 void appGenerateIVCurve(AppState& appState)

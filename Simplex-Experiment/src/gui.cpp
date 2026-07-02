@@ -108,6 +108,31 @@ bool isLogScaleParamName(const char* name)
     return value == "I0" || value == "A" || value == "Rs" || value == "Rsh" || value == "Rsh2" || value == "alpha";
 }
 
+struct SigmaThresholds
+{
+    double one = 1.0;
+    double two = 4.0;
+    double three = 9.0;
+};
+
+SigmaThresholds chi2ThresholdsFor(int freeCount)
+{
+    if (freeCount <= 1)
+        return {1.00, 4.00, 9.00};
+    if (freeCount <= 2)
+        return {2.30, 6.17, 11.8};
+    if (freeCount <= 3)
+        return {3.53, 8.02, 14.2};
+    return {4.72, 9.70, 16.3};
+}
+
+SigmaThresholds reducedThresholdsFor(int freeCount, int dof)
+{
+    const SigmaThresholds raw = chi2ThresholdsFor(freeCount);
+    const double scale = 1.0 / static_cast<double>(std::max(1, dof));
+    return {raw.one * scale, raw.two * scale, raw.three * scale};
+}
+
 std::vector<double> logSafeValues(const std::vector<double>& input)
 {
     std::vector<double> output(input.size());
@@ -622,6 +647,276 @@ void guiTabGpu(AppState& state)
         if (simplexFull.cases_checked > 0)
             ImGui::TextWrapped("%s", simplexFull.message.c_str());
     }
+
+    ImGui::SeparatorText("GPU Monte Carlo");
+    ImGui::InputInt("MC iterations / samples", &state.gpu_state.mc_samples);
+    ImGui::InputInt("Simplex max iterations", &state.gpu_state.mc_max_iter);
+    sliderDouble("MC noise [%]", &state.gpu_state.mc_noise_pct, 0.0, 100.0, "%.3f");
+    ImGui::InputScalar("MC seed", ImGuiDataType_U32, &state.gpu_state.mc_noise_seed);
+    ImGui::InputDouble("MC reduced chi2 tol", &state.gpu_state.mc_reduced_chi2_tol, 0.0, 0.0, "%.3e");
+    if (ImGui::Button("Apply MGR Fig. 3.13 preset"))
+        appApplyMgrFigure313Preset(state);
+    ImGui::SameLine();
+    if (!device.available)
+        ImGui::BeginDisabled();
+    if (ImGui::Button("Run GPU MC"))
+        appRunGpuMonteCarlo(state);
+    if (!device.available)
+        ImGui::EndDisabled();
+    ImGui::TextWrapped("%s", state.gpu_state.mc_status.c_str());
+    if (state.gpu_state.mc_total_ms > 0.0)
+    {
+        ImGui::Text("Profile ms: upload %.3f  noise %.3f  simplex %.3f  download %.3f  total %.3f",
+            state.gpu_state.mc_upload_ms,
+            state.gpu_state.mc_noise_ms,
+            state.gpu_state.mc_simplex_ms,
+            state.gpu_state.mc_download_ms,
+            state.gpu_state.mc_total_ms);
+    }
+    if (state.gpu_state.mc_has_results)
+    {
+        const SigmaThresholds thresholds = reducedThresholdsFor(state.gpu_state.mc_n_free, state.gpu_state.mc_dof);
+        ImGui::Text("Thresholds Δreduced chi2: 1σ=%.3e 2σ=%.3e 3σ=%.3e", thresholds.one, thresholds.two, thresholds.three);
+    }
+}
+
+void guiPanelGpuMcTable(AppState& state)
+{
+    if (!state.gpu_state.mc_has_results)
+        return;
+
+    ImGui::Begin("GPU MC Results");
+    ImGui::Text("Samples: %d", static_cast<int>(state.gpu_state.mc_results.size()));
+    const SigmaThresholds thresholds = chi2ThresholdsFor(state.gpu_state.mc_n_free);
+    if (ImGui::BeginTable("GpuMcThresholds", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+    {
+        ImGui::TableSetupColumn("Level");
+        ImGui::TableSetupColumn("NR Δchi2");
+        ImGui::TableSetupColumn("dof");
+        ImGui::TableSetupColumn("Δreduced chi2");
+        ImGui::TableHeadersRow();
+        const double rawOne = thresholds.one * state.gpu_state.mc_dof;
+        const double rawTwo = thresholds.two * state.gpu_state.mc_dof;
+        const double rawThree = thresholds.three * state.gpu_state.mc_dof;
+        const char* labels[] = {"1 sigma", "2 sigma", "3 sigma"};
+        const double raw[] = {rawOne, rawTwo, rawThree};
+        const double reduced[] = {thresholds.one, thresholds.two, thresholds.three};
+        for (int i = 0; i < 3; ++i)
+        {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted(labels[i]);
+            ImGui::TableSetColumnIndex(1); ImGui::Text("%.3g", raw[i]);
+            ImGui::TableSetColumnIndex(2); ImGui::Text("%d", state.gpu_state.mc_dof);
+            ImGui::TableSetColumnIndex(3); ImGui::Text("%.3e", reduced[i]);
+        }
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("GpuMcResultsTable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 320)))
+    {
+        ImGui::TableSetupColumn("#");
+        ImGui::TableSetupColumn("Δreduced chi2");
+        ImGui::TableSetupColumn("fit reduced");
+        ImGui::TableSetupColumn("ref reduced");
+        ImGui::TableSetupColumn("iters");
+        ImGui::TableSetupColumn("conv");
+        ImGui::TableHeadersRow();
+        for (int i = 0; i < static_cast<int>(state.gpu_state.mc_results.size()); ++i)
+        {
+            const GpuMcResult& result = state.gpu_state.mc_results[static_cast<size_t>(i)];
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0); ImGui::Text("%d", i);
+            ImGui::TableSetColumnIndex(1); ImGui::Text("%.3e", result.delta_reduced_chi2);
+            ImGui::TableSetColumnIndex(2); ImGui::Text("%.3e", result.reduced_chi2_min);
+            ImGui::TableSetColumnIndex(3); ImGui::Text("%.3e", result.ref_reduced_chi2);
+            ImGui::TableSetColumnIndex(4); ImGui::Text("%d", result.iterations);
+            ImGui::TableSetColumnIndex(5); ImGui::Text("%s", result.converged ? "yes" : "no");
+        }
+        ImGui::EndTable();
+    }
+    ImGui::End();
+}
+
+int paramIndexByName(const AppState& state, const char* name)
+{
+    for (int i = 0; i < static_cast<int>(state.model.params.size()); ++i)
+    {
+        if (state.model.params[static_cast<size_t>(i)].name == name)
+            return i;
+    }
+    return -1;
+}
+
+void plotGpuMcPair(AppState& state, const char* xName, const char* yName)
+{
+    const std::string title = std::string("GPU MC Scatter - ") + xName + " vs " + yName;
+    ImGui::Begin(title.c_str());
+    if (!state.gpu_state.mc_has_results)
+    {
+        ImGui::TextDisabled("Run GPU MC first.");
+        ImGui::End();
+        return;
+    }
+
+    const int xIndex = paramIndexByName(state, xName);
+    const int yIndex = paramIndexByName(state, yName);
+    if (xIndex < 0 || yIndex < 0)
+    {
+        ImGui::TextDisabled("Missing parameters for %s - %s.", xName, yName);
+        ImGui::End();
+        return;
+    }
+
+    plotAutoFitControls(title.c_str());
+    const SigmaThresholds thresholds = chi2ThresholdsFor(2);
+    std::vector<double> xs[4];
+    std::vector<double> ys[4];
+    std::vector<double> allX;
+    std::vector<double> allY;
+    for (size_t i = 0; i < state.gpu_state.mc_full_params.size(); ++i)
+    {
+        const std::vector<double>& params = state.gpu_state.mc_full_params[i];
+        if (xIndex >= static_cast<int>(params.size()) || yIndex >= static_cast<int>(params.size()))
+            continue;
+        const double x = params[static_cast<size_t>(xIndex)];
+        const double y = params[static_cast<size_t>(yIndex)];
+        if ((isLogScaleParamName(xName) && x <= 0.0) || (isLogScaleParamName(yName) && y <= 0.0))
+            continue;
+        allX.push_back(x);
+        allY.push_back(y);
+    }
+
+    if (allX.size() < 3)
+    {
+        ImGui::TextDisabled("Too few varying points for covariance ellipse.");
+        ImGui::End();
+        return;
+    }
+
+    double meanX = 0.0;
+    double meanY = 0.0;
+    for (size_t i = 0; i < allX.size(); ++i)
+    {
+        meanX += allX[i];
+        meanY += allY[i];
+    }
+    meanX /= static_cast<double>(allX.size());
+    meanY /= static_cast<double>(allY.size());
+
+    double covXX = 0.0;
+    double covXY = 0.0;
+    double covYY = 0.0;
+    for (size_t i = 0; i < allX.size(); ++i)
+    {
+        const double dx = allX[i] - meanX;
+        const double dy = allY[i] - meanY;
+        covXX += dx * dx;
+        covXY += dx * dy;
+        covYY += dy * dy;
+    }
+    const double invN = 1.0 / static_cast<double>(allX.size() - 1);
+    covXX *= invN;
+    covXY *= invN;
+    covYY *= invN;
+
+    const double det = covXX * covYY - covXY * covXY;
+    if (!std::isfinite(det) || det <= 1e-300)
+    {
+        ImGui::TextDisabled("%s - %s: one of selected params is fixed or covariance is degenerate.", xName, yName);
+        ImGui::End();
+        return;
+    }
+    const double invXX = covYY / det;
+    const double invXY = -covXY / det;
+    const double invYY = covXX / det;
+    for (size_t i = 0; i < allX.size(); ++i)
+    {
+        const double dx = allX[i] - meanX;
+        const double dy = allY[i] - meanY;
+        const double d2 = dx * dx * invXX + 2.0 * dx * dy * invXY + dy * dy * invYY;
+        int bucket = 3;
+        if (d2 <= thresholds.one)
+            bucket = 0;
+        else if (d2 <= thresholds.two)
+            bucket = 1;
+        else if (d2 <= thresholds.three)
+            bucket = 2;
+        xs[bucket].push_back(allX[i]);
+        ys[bucket].push_back(allY[i]);
+    }
+
+    if (ImPlot::BeginPlot(title.c_str(), ImVec2(-1, -1)))
+    {
+        ImPlot::SetupAxes(xName, yName);
+        if (isLogScaleParamName(xName))
+            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+        if (isLogScaleParamName(yName))
+            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+        setupAutoFitAxes(title.c_str(), allX, allY, isLogScaleParamName(xName), isLogScaleParamName(yName));
+
+        const int order[] = {3, 2, 1, 0};
+        const char* labels[] = {"<=1 sigma", "1-2 sigma", "2-3 sigma", ">3 sigma"};
+        const ImVec4 colors[] = {
+            ImVec4(1.00f, 0.10f, 0.05f, 1.0f),
+            ImVec4(1.00f, 0.50f, 0.10f, 1.0f),
+            ImVec4(1.00f, 0.90f, 0.00f, 1.0f),
+            ImVec4(0.10f, 0.90f, 0.95f, 1.0f),
+        };
+        for (int bucket : order)
+        {
+            if (xs[bucket].empty())
+                continue;
+            ImPlotSpec spec;
+            spec.LineColor = colors[bucket];
+            spec.Marker = ImPlotMarker_Circle;
+            spec.MarkerSize = 4.0f;
+            spec.MarkerFillColor = colors[bucket];
+            spec.MarkerLineColor = colors[bucket];
+            ImPlot::PlotScatter(labels[bucket], xs[bucket].data(), ys[bucket].data(), static_cast<int>(xs[bucket].size()), spec);
+        }
+        const double trace = covXX + covYY;
+        const double root = std::sqrt(std::max(0.0, (covXX - covYY) * (covXX - covYY) + 4.0 * covXY * covXY));
+        const double lambda1 = 0.5 * (trace + root);
+        const double lambda2 = 0.5 * (trace - root);
+        const double angle = 0.5 * std::atan2(2.0 * covXY, covXX - covYY);
+        const double cosA = std::cos(angle);
+        const double sinA = std::sin(angle);
+        const double levels[] = {thresholds.one, thresholds.two, thresholds.three};
+        const char* ellipseLabels[] = {"1 sigma ellipse", "2 sigma ellipse", "3 sigma ellipse"};
+        for (int level = 2; level >= 0; --level)
+        {
+            std::vector<double> ex;
+            std::vector<double> ey;
+            ex.reserve(129);
+            ey.reserve(129);
+            const double r1 = std::sqrt(std::max(0.0, lambda1 * levels[level]));
+            const double r2 = std::sqrt(std::max(0.0, lambda2 * levels[level]));
+            for (int i = 0; i <= 128; ++i)
+            {
+                const double t = 2.0 * 3.14159265358979323846 * static_cast<double>(i) / 128.0;
+                const double ux = r1 * std::cos(t);
+                const double uy = r2 * std::sin(t);
+                ex.push_back(meanX + ux * cosA - uy * sinA);
+                ey.push_back(meanY + ux * sinA + uy * cosA);
+            }
+            ImPlotSpec lineSpec;
+            lineSpec.LineColor = colors[level];
+            lineSpec.LineWeight = 2.0f;
+            ImPlot::PlotLine(ellipseLabels[level], ex.data(), ey.data(), static_cast<int>(ex.size()), lineSpec);
+        }
+        ImPlot::EndPlot();
+    }
+    ImGui::End();
+}
+
+void guiPanelGpuMcScatter(AppState& state)
+{
+    if (!state.gpu_state.mc_has_results)
+        return;
+    plotGpuMcPair(state, "A", "I0");
+    plotGpuMcPair(state, "Rs", "Rsh");
+    plotGpuMcPair(state, "Rsh", "Rsh2");
+    plotGpuMcPair(state, "alpha", "Rsh2");
 }
 
 void guiPanelControls(AppState& state)
@@ -1221,5 +1516,10 @@ void guiRender(AppState& appState)
         guiPanelParameterHistories(appState);
     }
 
+    if (appState.gpu_state.mc_has_results)
+    {
+        guiPanelGpuMcTable(appState);
+        guiPanelGpuMcScatter(appState);
+    }
     guiPanelLog(appState);
 }

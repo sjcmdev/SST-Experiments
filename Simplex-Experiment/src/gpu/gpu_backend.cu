@@ -9,6 +9,7 @@
 #include <cuda_runtime.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -17,6 +18,12 @@
 
 namespace
 {
+double hostTimeMs()
+{
+    using Clock = std::chrono::steady_clock;
+    return std::chrono::duration<double, std::milli>(Clock::now().time_since_epoch()).count();
+}
+
 struct LambertWCase
 {
     double input;
@@ -94,6 +101,23 @@ __global__ void addPercentNoiseKernel(const double* input, double* output, doubl
         return;
     const double noise = input[index] * noise_pct / 100.0;
     output[index] = input[index] + deterministicNormal(seed, index) * noise;
+}
+
+__global__ void addPercentNoiseMcKernel(
+    const double* input,
+    const double* sigma,
+    double* output,
+    uint64_t seed,
+    int point_count,
+    int sample_count)
+{
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total = point_count * sample_count;
+    if (index >= total)
+        return;
+    const int sample = index / point_count;
+    const int point = index - sample * point_count;
+    output[index] = input[point] + deterministicNormal(seed + static_cast<uint64_t>(sample) * 0xD1B54A32D192ED03ULL, point) * sigma[point];
 }
 
 __device__ __forceinline__ void buildFullParams_d(const GpuParamLayout& layout, const double* free_values, double* full)
@@ -307,6 +331,9 @@ __global__ void simplexFullKernel(
     if (threadIdx.x != 0)
         return;
 
+    const int run = blockIdx.x;
+    const double* measured_run = measured + static_cast<size_t>(run) * point_count;
+    GpuMcResult* out = result + run;
     double vertices[GpuSimplexStepResult::MAX_VERTICES][GpuSimplexStepResult::MAX_FREE] = {};
     double chi2[GpuSimplexStepResult::MAX_VERTICES] = {};
     int order[GpuSimplexStepResult::MAX_VERTICES] = {};
@@ -332,7 +359,8 @@ __global__ void simplexFullKernel(
     }
 
     for (int vertex = 0; vertex < n_vertices; ++vertex)
-        chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+        chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured_run, sigma, point_count);
+    const double ref_reduced_chi2 = chi2[0] / static_cast<double>(layout.dof);
 
     for (; iteration < config.max_iter; ++iteration)
     {
@@ -380,7 +408,7 @@ __global__ void simplexFullKernel(
                 clipToBounds_d(layout, vertices[vertex]);
             }
             for (int vertex = 0; vertex < n_vertices; ++vertex)
-                chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+                chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured_run, sigma, point_count);
             continue;
         }
 
@@ -399,7 +427,7 @@ __global__ void simplexFullKernel(
         for (int j = 0; j < n_free; ++j)
             reflected[j] = centroid[j] + config.alpha * (centroid[j] - vertices[worst][j]);
         clipToBounds_d(layout, reflected);
-        const double f_reflected = evaluateChi2Serial_d(model, layout, reflected, voltages, measured, sigma, point_count);
+        const double f_reflected = evaluateChi2Serial_d(model, layout, reflected, voltages, measured_run, sigma, point_count);
 
         if (f_reflected < chi2[best])
         {
@@ -407,7 +435,7 @@ __global__ void simplexFullKernel(
             for (int j = 0; j < n_free; ++j)
                 expanded[j] = centroid[j] + config.gamma * (reflected[j] - centroid[j]);
             clipToBounds_d(layout, expanded);
-            const double f_expanded = evaluateChi2Serial_d(model, layout, expanded, voltages, measured, sigma, point_count);
+            const double f_expanded = evaluateChi2Serial_d(model, layout, expanded, voltages, measured_run, sigma, point_count);
             if (f_expanded < f_reflected)
             {
                 for (int j = 0; j < n_free; ++j)
@@ -433,7 +461,7 @@ __global__ void simplexFullKernel(
             for (int j = 0; j < n_free; ++j)
                 contracted[j] = centroid[j] + config.rho * (vertices[worst][j] - centroid[j]);
             clipToBounds_d(layout, contracted);
-            const double f_contracted = evaluateChi2Serial_d(model, layout, contracted, voltages, measured, sigma, point_count);
+            const double f_contracted = evaluateChi2Serial_d(model, layout, contracted, voltages, measured_run, sigma, point_count);
             if (f_contracted < chi2[worst])
             {
                 for (int j = 0; j < n_free; ++j)
@@ -449,7 +477,7 @@ __global__ void simplexFullKernel(
                     for (int j = 0; j < n_free; ++j)
                         vertices[vertex][j] = vertices[best][j] + config.sigma_shrink * (vertices[vertex][j] - vertices[best][j]);
                     clipToBounds_d(layout, vertices[vertex]);
-                    chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+                    chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured_run, sigma, point_count);
                 }
             }
         }
@@ -458,14 +486,14 @@ __global__ void simplexFullKernel(
     sortOrder_d(chi2, n_vertices, order);
     const int best = order[0];
     for (int j = 0; j < n_free; ++j)
-        result->best_free_params[j] = vertices[best][j];
-    result->chi2_min = chi2[best];
-    result->reduced_chi2_min = chi2[best] / static_cast<double>(layout.dof);
-    result->ref_reduced_chi2 = 0.0;
-    result->delta_reduced_chi2 = result->reduced_chi2_min;
-    result->iterations = iteration;
-    result->converged = result->reduced_chi2_min < config.reduced_chi2_tol ? 1 : 0;
-    result->n_free = n_free;
+        out->best_free_params[j] = vertices[best][j];
+    out->chi2_min = chi2[best];
+    out->reduced_chi2_min = chi2[best] / static_cast<double>(layout.dof);
+    out->ref_reduced_chi2 = ref_reduced_chi2;
+    out->delta_reduced_chi2 = out->reduced_chi2_min - ref_reduced_chi2;
+    out->iterations = iteration;
+    out->converged = out->reduced_chi2_min < config.reduced_chi2_tol ? 1 : 0;
+    out->n_free = n_free;
 }
 
 std::string cudaErrorMessage(cudaError_t error)
@@ -1072,4 +1100,140 @@ cuda_failure:
     freeDevice(deviceSigma);
     freeDevice(deviceResult);
     return result;
+}
+
+GpuMonteCarloOutput gpuRunMonteCarlo(const GpuMonteCarloRequest& request)
+{
+    GpuMonteCarloOutput output;
+    const double totalStartMs = hostTimeMs();
+    const GpuDeviceStatus device = gpuQueryDevice();
+    if (!device.available)
+    {
+        output.message = device.message;
+        return output;
+    }
+    if (request.n_samples <= 0)
+    {
+        output.message = "GPU MC: n_samples must be > 0";
+        return output;
+    }
+    if (request.voltages.empty() || request.voltages.size() != request.true_current.size())
+    {
+        output.message = "GPU MC: voltages and true_current size mismatch";
+        return output;
+    }
+    if (request.layout.n_free <= 0 || request.layout.n_free >= GpuSimplexStepResult::MAX_VERTICES)
+    {
+        output.message = "GPU MC: invalid free parameter count";
+        return output;
+    }
+
+    const int pointCount = static_cast<int>(request.voltages.size());
+    const int sampleCount = request.n_samples;
+    const size_t pointBytes = request.voltages.size() * sizeof(double);
+    const size_t noisyBytes = static_cast<size_t>(pointCount) * static_cast<size_t>(sampleCount) * sizeof(double);
+    std::vector<double> sigma(request.true_current.size());
+    const double noiseFactor = std::clamp(request.noise_pct, 0.0, 100.0) / 100.0;
+    for (size_t i = 0; i < request.true_current.size(); ++i)
+        sigma[i] = std::max(std::abs(request.true_current[i]) * noiseFactor, 1e-30);
+
+    double* deviceVoltages = nullptr;
+    double* deviceTrueCurrent = nullptr;
+    double* deviceSigma = nullptr;
+    double* deviceNoisy = nullptr;
+    GpuMcResult* deviceResults = nullptr;
+    double stageStartMs = hostTimeMs();
+    cudaError_t error = cudaMalloc(&deviceVoltages, pointBytes);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceTrueCurrent, pointBytes);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceSigma, pointBytes);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceNoisy, noisyBytes);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceResults, static_cast<size_t>(sampleCount) * sizeof(GpuMcResult));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    error = cudaMemcpy(deviceVoltages, request.voltages.data(), pointBytes, cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceTrueCurrent, request.true_current.data(), pointBytes, cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceSigma, sigma.data(), pointBytes, cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    output.upload_ms = hostTimeMs() - stageStartMs;
+
+    {
+        stageStartMs = hostTimeMs();
+        const int blockSize = 256;
+        const int total = pointCount * sampleCount;
+        const int gridSize = (total + blockSize - 1) / blockSize;
+        addPercentNoiseMcKernel<<<gridSize, blockSize>>>(
+            deviceTrueCurrent,
+            deviceSigma,
+            deviceNoisy,
+            static_cast<uint64_t>(request.noise_seed),
+            pointCount,
+            sampleCount);
+        error = cudaGetLastError();
+        if (error != cudaSuccess)
+            goto cuda_failure;
+        error = cudaDeviceSynchronize();
+        if (error != cudaSuccess)
+            goto cuda_failure;
+        output.noise_ms = hostTimeMs() - stageStartMs;
+    }
+
+    stageStartMs = hostTimeMs();
+    simplexFullKernel<<<sampleCount, 32>>>(
+        request.model_type,
+        request.layout,
+        request.nm_config,
+        deviceVoltages,
+        deviceNoisy,
+        deviceSigma,
+        pointCount,
+        deviceResults);
+    error = cudaGetLastError();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaDeviceSynchronize();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    output.simplex_ms = hostTimeMs() - stageStartMs;
+
+    stageStartMs = hostTimeMs();
+    output.results.resize(static_cast<size_t>(sampleCount));
+    error = cudaMemcpy(output.results.data(), deviceResults, static_cast<size_t>(sampleCount) * sizeof(GpuMcResult), cudaMemcpyDeviceToHost);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    output.download_ms = hostTimeMs() - stageStartMs;
+
+    output.success = true;
+    output.total_ms = hostTimeMs() - totalStartMs;
+    output.message = "GPU MC finished: samples=" + std::to_string(sampleCount);
+    freeDevice(deviceVoltages);
+    freeDevice(deviceTrueCurrent);
+    freeDevice(deviceSigma);
+    freeDevice(deviceNoisy);
+    freeDevice(deviceResults);
+    return output;
+
+cuda_failure:
+    output.success = false;
+    output.total_ms = hostTimeMs() - totalStartMs;
+    output.message = "GPU MC failed: " + cudaErrorMessage(error);
+    freeDevice(deviceVoltages);
+    freeDevice(deviceTrueCurrent);
+    freeDevice(deviceSigma);
+    freeDevice(deviceNoisy);
+    freeDevice(deviceResults);
+    return output;
 }

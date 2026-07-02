@@ -3,6 +3,7 @@
 #include "gpu_types.hpp"
 
 #include <string>
+#include <vector>
 
 struct GpuDeviceStatus
 {
@@ -33,9 +34,34 @@ struct GpuNumericValidationResult
     std::string message;
 };
 
+struct GpuMonteCarloRequest
+{
+    GpuModelType model_type = GpuModelType::Diode4P;
+    GpuParamLayout layout;
+    GpuNmConfig nm_config;
+    std::vector<double> voltages;
+    std::vector<double> true_current;
+    int n_samples = 0;
+    double noise_pct = 0.0;
+    unsigned int noise_seed = 42;
+};
+
+struct GpuMonteCarloOutput
+{
+    bool success = false;
+    std::string message;
+    std::vector<GpuMcResult> results;
+    double upload_ms = 0.0;
+    double noise_ms = 0.0;
+    double simplex_ms = 0.0;
+    double download_ms = 0.0;
+    double total_ms = 0.0;
+};
+
 GpuDeviceStatus gpuQueryDevice();
 GpuLambertWValidationResult gpuValidateLambertW();
 GpuNumericValidationResult gpuValidateDiodeCurrent();
 GpuNumericValidationResult gpuValidateNoise();
 GpuNumericValidationResult gpuValidateSimplexOneStep();
 GpuNumericValidationResult gpuValidateSimplexFull();
+GpuMonteCarloOutput gpuRunMonteCarlo(const GpuMonteCarloRequest& request);
