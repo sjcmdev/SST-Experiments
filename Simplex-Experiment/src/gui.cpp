@@ -593,6 +593,9 @@ void guiTabGpu(AppState& state)
         ImGui::BeginDisabled();
     if (ImGui::Button("Validate LambertW GPU"))
         appValidateGpuLambertW(state);
+    ImGui::SameLine();
+    if (ImGui::Button("Validate GPU core"))
+        appValidateGpuCore(state);
     if (!device.available)
         ImGui::EndDisabled();
 
@@ -605,6 +608,16 @@ void guiTabGpu(AppState& state)
         ImGui::Text("Max abs error: %.3e", validation.max_abs_error);
         ImGui::Text("Max residual: %.3e", validation.max_residual);
         ImGui::TextWrapped("%s", validation.message.c_str());
+
+        const GpuNumericValidationResult& current = state.gpu_state.current_validation;
+        const GpuNumericValidationResult& noise = state.gpu_state.noise_validation;
+        const GpuNumericValidationResult& simplex = state.gpu_state.simplex_validation;
+        if (current.cases_checked > 0)
+            ImGui::TextWrapped("%s", current.message.c_str());
+        if (noise.cases_checked > 0)
+            ImGui::TextWrapped("%s", noise.message.c_str());
+        if (simplex.cases_checked > 0)
+            ImGui::TextWrapped("%s", simplex.message.c_str());
     }
 }
 

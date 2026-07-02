@@ -177,6 +177,9 @@ struct GpuState
 {
     GpuDeviceStatus device;
     GpuLambertWValidationResult lambertw_validation;
+    GpuNumericValidationResult current_validation;
+    GpuNumericValidationResult noise_validation;
+    GpuNumericValidationResult simplex_validation;
     bool validation_ran = false;
 };
 
@@ -225,3 +228,4 @@ void appStepFit(AppState& appState, int steps);
 void appGenerateBatchPreview(AppState& appState);
 void appInitGpu(AppState& appState);
 void appValidateGpuLambertW(AppState& appState);
+void appValidateGpuCore(AppState& appState);

@@ -468,6 +468,26 @@ void appValidateGpuLambertW(AppState& appState)
         appState.gpu_state.lambertw_validation.message);
 }
 
+void appValidateGpuCore(AppState& appState)
+{
+    appValidateGpuLambertW(appState);
+
+    appState.gpu_state.current_validation = gpuValidateDiodeCurrent();
+    appState.log(
+        appState.gpu_state.current_validation.passed ? LogLevel::Info : LogLevel::Error,
+        appState.gpu_state.current_validation.message);
+
+    appState.gpu_state.noise_validation = gpuValidateNoise();
+    appState.log(
+        appState.gpu_state.noise_validation.passed ? LogLevel::Info : LogLevel::Error,
+        appState.gpu_state.noise_validation.message);
+
+    appState.gpu_state.simplex_validation = gpuValidateSimplexOneStep();
+    appState.log(
+        appState.gpu_state.simplex_validation.passed ? LogLevel::Info : LogLevel::Error,
+        appState.gpu_state.simplex_validation.message);
+}
+
 void appGenerateIVCurve(AppState& appState)
 {
     if (appState.model.N_points < 2)

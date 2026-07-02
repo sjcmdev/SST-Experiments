@@ -2,10 +2,16 @@
 
 #include "diode_model_device.cuh"
 
+#include "solver/diode_model.hpp"
+#include "solver/diode_objective.hpp"
+#include "solver/nelder_mead.hpp"
+
 #include <cuda_runtime.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -17,6 +23,39 @@ struct LambertWCase
     double expected;
     double tolerance;
 };
+
+__device__ __forceinline__ uint64_t splitmix64(uint64_t value)
+{
+    value += 0x9E3779B97F4A7C15ULL;
+    value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    value = (value ^ (value >> 27)) * 0x94D049BB133111EBULL;
+    return value ^ (value >> 31);
+}
+
+__host__ __device__ __forceinline__ double unitFromBits(uint64_t bits)
+{
+    return ((bits >> 11) + 1.0) * (1.0 / 9007199254740993.0);
+}
+
+__host__ __device__ __forceinline__ double deterministicNormal(uint64_t seed, int index)
+{
+    const uint64_t base = seed + static_cast<uint64_t>(index) * 0x9E3779B97F4A7C15ULL;
+#ifdef __CUDA_ARCH__
+    const double u1 = unitFromBits(splitmix64(base));
+    const double u2 = unitFromBits(splitmix64(base + 0xD1B54A32D192ED03ULL));
+    return sqrt(-2.0 * log(u1)) * cos(6.28318530717958647692 * u2);
+#else
+    auto splitmix64Host = [](uint64_t value) {
+        value += 0x9E3779B97F4A7C15ULL;
+        value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        value = (value ^ (value >> 27)) * 0x94D049BB133111EBULL;
+        return value ^ (value >> 31);
+    };
+    const double u1 = unitFromBits(splitmix64Host(base));
+    const double u2 = unitFromBits(splitmix64Host(base + 0xD1B54A32D192ED03ULL));
+    return std::sqrt(-2.0 * std::log(u1)) * std::cos(6.28318530717958647692 * u2);
+#endif
+}
 
 __global__ void validateLambertWKernel(const double* inputs, double* outputs, double* residuals, int count)
 {
@@ -38,9 +77,258 @@ __global__ void validateLambertWKernel(const double* inputs, double* outputs, do
     residuals[index] = fabs(residual) / scale;
 }
 
+__global__ void evaluateCurrentKernel(GpuModelType model, const double* voltages, const double* params, double temperature, double* output, int count)
+{
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count)
+        return;
+    output[index] = model == GpuModelType::Diode6P
+        ? evaluateDiodeIV6_d(voltages[index], params, temperature)
+        : evaluateDiodeIV4_d(voltages[index], params, temperature);
+}
+
+__global__ void addPercentNoiseKernel(const double* input, double* output, double noise_pct, uint64_t seed, int count)
+{
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count)
+        return;
+    const double noise = input[index] * noise_pct / 100.0;
+    output[index] = input[index] + deterministicNormal(seed, index) * noise;
+}
+
+__device__ __forceinline__ void buildFullParams_d(const GpuParamLayout& layout, const double* free_values, double* full)
+{
+    for (int i = 0; i < layout.n_total; ++i)
+        full[i] = layout.fixed_values[i];
+    for (int j = 0; j < layout.n_free; ++j)
+        full[layout.free_to_total[j]] = free_values[j];
+}
+
+__device__ double evaluateChi2Serial_d(
+    GpuModelType model,
+    const GpuParamLayout& layout,
+    const double* free_values,
+    const double* voltages,
+    const double* measured,
+    const double* sigma,
+    int count)
+{
+    const double kDeviceInf = __longlong_as_double(0x7FF0000000000000ULL);
+    double params[GpuParamLayout::MAX_PARAMS] = {};
+    buildFullParams_d(layout, free_values, params);
+
+    double chi2 = 0.0;
+    for (int i = 0; i < count; ++i)
+    {
+        if (sigma[i] <= 0.0)
+            return kDeviceInf;
+        const double current = model == GpuModelType::Diode6P
+            ? evaluateDiodeIV6_d(voltages[i], params, layout.T)
+            : evaluateDiodeIV4_d(voltages[i], params, layout.T);
+        if (!isfinite(current))
+            return kDeviceInf;
+        const double residual = (measured[i] - current) / sigma[i];
+        chi2 += residual * residual;
+    }
+    return chi2;
+}
+
+__device__ __forceinline__ void clipToBounds_d(const GpuParamLayout& layout, double* values)
+{
+    for (int j = 0; j < layout.n_free; ++j)
+    {
+        if (!isnan(values[j]))
+            values[j] = fmin(fmax(values[j], layout.min_bounds[j]), layout.max_bounds[j]);
+    }
+}
+
+__device__ __forceinline__ void sortOrder_d(const double* chi2, int count, int* order)
+{
+    for (int i = 0; i < count; ++i)
+        order[i] = i;
+    for (int i = 1; i < count; ++i)
+    {
+        const int key = order[i];
+        int j = i - 1;
+        while (j >= 0 && chi2[order[j]] > chi2[key])
+        {
+            order[j + 1] = order[j];
+            --j;
+        }
+        order[j + 1] = key;
+    }
+}
+
+__global__ void simplexOneStepKernel(
+    GpuModelType model,
+    GpuParamLayout layout,
+    GpuNmConfig config,
+    const double* voltages,
+    const double* measured,
+    const double* sigma,
+    int point_count,
+    GpuSimplexStepResult* result)
+{
+    if (threadIdx.x != 0 || blockIdx.x != 0)
+        return;
+
+    double vertices[GpuSimplexStepResult::MAX_VERTICES][GpuSimplexStepResult::MAX_FREE] = {};
+    double chi2[GpuSimplexStepResult::MAX_VERTICES] = {};
+    int order[GpuSimplexStepResult::MAX_VERTICES] = {};
+    const int n_free = layout.n_free;
+    const int n_vertices = n_free + 1;
+
+    for (int j = 0; j < n_free; ++j)
+        vertices[0][j] = layout.fixed_values[layout.free_to_total[j]];
+
+    for (int vertex = 1; vertex < n_vertices; ++vertex)
+    {
+        for (int j = 0; j < n_free; ++j)
+            vertices[vertex][j] = vertices[0][j];
+        const int dim = vertex - 1;
+        const double range = layout.max_bounds[dim] - layout.min_bounds[dim];
+        const double delta = 0.05 * range;
+        double candidate = vertices[0][dim] + delta;
+        if (candidate > layout.max_bounds[dim])
+            candidate = vertices[0][dim] - delta;
+        vertices[vertex][dim] = candidate;
+        clipToBounds_d(layout, vertices[vertex]);
+    }
+
+    for (int vertex = 0; vertex < n_vertices; ++vertex)
+        chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+
+    sortOrder_d(chi2, n_vertices, order);
+    const int best = order[0];
+    const int second_worst = order[n_vertices - 2];
+    const int worst = order[n_vertices - 1];
+
+    double centroid[GpuSimplexStepResult::MAX_FREE] = {};
+    for (int vertex = 0; vertex < n_vertices; ++vertex)
+    {
+        if (vertex == worst)
+            continue;
+        for (int j = 0; j < n_free; ++j)
+            centroid[j] += vertices[vertex][j];
+    }
+    for (int j = 0; j < n_free; ++j)
+        centroid[j] /= static_cast<double>(n_free);
+
+    double reflected[GpuSimplexStepResult::MAX_FREE] = {};
+    for (int j = 0; j < n_free; ++j)
+        reflected[j] = centroid[j] + config.alpha * (centroid[j] - vertices[worst][j]);
+    clipToBounds_d(layout, reflected);
+    const double f_reflected = evaluateChi2Serial_d(model, layout, reflected, voltages, measured, sigma, point_count);
+
+    int step_type = 0;
+    if (f_reflected < chi2[best])
+    {
+        double expanded[GpuSimplexStepResult::MAX_FREE] = {};
+        for (int j = 0; j < n_free; ++j)
+            expanded[j] = centroid[j] + config.gamma * (reflected[j] - centroid[j]);
+        clipToBounds_d(layout, expanded);
+        const double f_expanded = evaluateChi2Serial_d(model, layout, expanded, voltages, measured, sigma, point_count);
+        if (f_expanded < f_reflected)
+        {
+            for (int j = 0; j < n_free; ++j)
+                vertices[worst][j] = expanded[j];
+            chi2[worst] = f_expanded;
+            step_type = 1;
+        }
+        else
+        {
+            for (int j = 0; j < n_free; ++j)
+                vertices[worst][j] = reflected[j];
+            chi2[worst] = f_reflected;
+            step_type = 0;
+        }
+    }
+    else if (f_reflected < chi2[second_worst])
+    {
+        for (int j = 0; j < n_free; ++j)
+            vertices[worst][j] = reflected[j];
+        chi2[worst] = f_reflected;
+        step_type = 0;
+    }
+    else
+    {
+        double contracted[GpuSimplexStepResult::MAX_FREE] = {};
+        for (int j = 0; j < n_free; ++j)
+            contracted[j] = centroid[j] + config.rho * (vertices[worst][j] - centroid[j]);
+        clipToBounds_d(layout, contracted);
+        const double f_contracted = evaluateChi2Serial_d(model, layout, contracted, voltages, measured, sigma, point_count);
+        if (f_contracted < chi2[worst])
+        {
+            for (int j = 0; j < n_free; ++j)
+                vertices[worst][j] = contracted[j];
+            chi2[worst] = f_contracted;
+            step_type = 2;
+        }
+        else
+        {
+            for (int vertex = 0; vertex < n_vertices; ++vertex)
+            {
+                if (vertex == best)
+                    continue;
+                for (int j = 0; j < n_free; ++j)
+                    vertices[vertex][j] = vertices[best][j] + config.sigma_shrink * (vertices[vertex][j] - vertices[best][j]);
+                clipToBounds_d(layout, vertices[vertex]);
+                chi2[vertex] = evaluateChi2Serial_d(model, layout, vertices[vertex], voltages, measured, sigma, point_count);
+            }
+            step_type = 3;
+        }
+    }
+
+    sortOrder_d(chi2, n_vertices, order);
+    result->n_free = n_free;
+    result->n_vertices = n_vertices;
+    result->best_idx = order[0];
+    result->worst_idx = order[n_vertices - 1];
+    result->step_type = step_type;
+    result->iteration = 1;
+    for (int vertex = 0; vertex < n_vertices; ++vertex)
+    {
+        result->chi2[vertex] = chi2[vertex];
+        for (int j = 0; j < n_free; ++j)
+            result->vertices[vertex][j] = vertices[vertex][j];
+    }
+}
+
 std::string cudaErrorMessage(cudaError_t error)
 {
     return std::string(cudaGetErrorString(error));
+}
+
+template <typename T>
+void freeDevice(T*& pointer)
+{
+    if (pointer)
+    {
+        cudaFree(pointer);
+        pointer = nullptr;
+    }
+}
+
+double relativeError(double value, double expected)
+{
+    return std::abs(value - expected) / std::max(1.0, std::abs(expected));
+}
+
+GpuParamLayout makeFourParamLayout(const double* params, const double* min_bounds, const double* max_bounds, int point_count)
+{
+    GpuParamLayout layout;
+    layout.n_total = 4;
+    layout.n_free = 4;
+    layout.T = 300.0;
+    layout.dof = std::max(1, point_count - layout.n_free);
+    for (int i = 0; i < 4; ++i)
+    {
+        layout.free_to_total[i] = i;
+        layout.fixed_values[i] = params[i];
+        layout.min_bounds[i] = min_bounds[i];
+        layout.max_bounds[i] = max_bounds[i];
+    }
+    return layout;
 }
 }
 
@@ -183,3 +471,294 @@ cuda_failure:
     return result;
 }
 
+GpuNumericValidationResult gpuValidateDiodeCurrent()
+{
+    GpuNumericValidationResult result;
+    const GpuDeviceStatus device = gpuQueryDevice();
+    result.cuda_available = device.available;
+    if (!device.available)
+    {
+        result.message = device.message;
+        return result;
+    }
+
+    const std::vector<double> voltages = {-0.5, -0.25, 0.0, 0.1, 0.3, 0.5, 0.7};
+    const double params4[] = {1e-10, 1.5, 0.1, 1000.0};
+    const double params6[] = {1e-10, 1.5, 0.1, 1000.0, 2.0, 5000.0};
+    constexpr double temperature = 300.0;
+    const int count = static_cast<int>(voltages.size());
+
+    double* deviceVoltages = nullptr;
+    double* deviceParams = nullptr;
+    double* deviceOutput = nullptr;
+    std::vector<double> output(count);
+    cudaError_t error = cudaMalloc(&deviceVoltages, voltages.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceParams, 6 * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceOutput, voltages.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceVoltages, voltages.data(), voltages.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    result.passed = true;
+    for (int modelIndex = 0; modelIndex < 2; ++modelIndex)
+    {
+        const bool use6 = modelIndex == 1;
+        const double* params = use6 ? params6 : params4;
+        const size_t paramBytes = (use6 ? 6 : 4) * sizeof(double);
+        error = cudaMemcpy(deviceParams, params, paramBytes, cudaMemcpyHostToDevice);
+        if (error != cudaSuccess)
+            goto cuda_failure;
+        evaluateCurrentKernel<<<1, 32>>>(use6 ? GpuModelType::Diode6P : GpuModelType::Diode4P, deviceVoltages, deviceParams, temperature, deviceOutput, count);
+        error = cudaGetLastError();
+        if (error != cudaSuccess)
+            goto cuda_failure;
+        error = cudaDeviceSynchronize();
+        if (error != cudaSuccess)
+            goto cuda_failure;
+        error = cudaMemcpy(output.data(), deviceOutput, voltages.size() * sizeof(double), cudaMemcpyDeviceToHost);
+        if (error != cudaSuccess)
+            goto cuda_failure;
+
+        for (int i = 0; i < count; ++i)
+        {
+            const double expected = use6
+                ? evaluateDiodeIV6(voltages[i], params, temperature)
+                : evaluateDiodeIV4(voltages[i], params, temperature);
+            const double absError = std::abs(output[i] - expected);
+            const double relError = relativeError(output[i], expected);
+            result.max_abs_error = std::max(result.max_abs_error, absError);
+            result.max_rel_error = std::max(result.max_rel_error, relError);
+            result.passed = result.passed && absError < 1e-10 && relError < 1e-9;
+            ++result.cases_checked;
+        }
+    }
+
+    {
+        std::ostringstream stream;
+        stream << (result.passed ? "GPU diode current validation PASS" : "GPU diode current validation FAIL")
+               << ": cases=" << result.cases_checked
+               << ", max_abs_error=" << result.max_abs_error
+               << ", max_rel_error=" << result.max_rel_error;
+        result.message = stream.str();
+    }
+    freeDevice(deviceVoltages);
+    freeDevice(deviceParams);
+    freeDevice(deviceOutput);
+    return result;
+
+cuda_failure:
+    result.message = "CUDA diode current validation failed: " + cudaErrorMessage(error);
+    freeDevice(deviceVoltages);
+    freeDevice(deviceParams);
+    freeDevice(deviceOutput);
+    return result;
+}
+
+GpuNumericValidationResult gpuValidateNoise()
+{
+    GpuNumericValidationResult result;
+    const GpuDeviceStatus device = gpuQueryDevice();
+    result.cuda_available = device.available;
+    if (!device.available)
+    {
+        result.message = device.message;
+        return result;
+    }
+
+    const std::vector<double> input = {-1e-9, -2e-6, 0.0, 5e-5, 1e-3, 2e-2, 1.0};
+    constexpr double noisePct = 7.5;
+    constexpr uint64_t seed = 42;
+    const int count = static_cast<int>(input.size());
+    std::vector<double> expected(count);
+    std::vector<double> output(count);
+    for (int i = 0; i < count; ++i)
+        expected[i] = input[i] + deterministicNormal(seed, i) * (input[i] * noisePct / 100.0);
+
+    double* deviceInput = nullptr;
+    double* deviceOutput = nullptr;
+    cudaError_t error = cudaMalloc(&deviceInput, input.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceOutput, input.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceInput, input.data(), input.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    addPercentNoiseKernel<<<1, 32>>>(deviceInput, deviceOutput, noisePct, seed, count);
+    error = cudaGetLastError();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaDeviceSynchronize();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(output.data(), deviceOutput, input.size() * sizeof(double), cudaMemcpyDeviceToHost);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    result.passed = true;
+    result.cases_checked = count;
+    for (int i = 0; i < count; ++i)
+    {
+        const double absError = std::abs(output[i] - expected[i]);
+        const double relError = relativeError(output[i], expected[i]);
+        result.max_abs_error = std::max(result.max_abs_error, absError);
+        result.max_rel_error = std::max(result.max_rel_error, relError);
+        result.passed = result.passed && absError < 1e-14 && relError < 1e-12;
+    }
+
+    {
+        std::ostringstream stream;
+        stream << (result.passed ? "GPU noise validation PASS" : "GPU noise validation FAIL")
+               << ": cases=" << result.cases_checked
+               << ", max_abs_error=" << result.max_abs_error
+               << ", max_rel_error=" << result.max_rel_error;
+        result.message = stream.str();
+    }
+    freeDevice(deviceInput);
+    freeDevice(deviceOutput);
+    return result;
+
+cuda_failure:
+    result.message = "CUDA noise validation failed: " + cudaErrorMessage(error);
+    freeDevice(deviceInput);
+    freeDevice(deviceOutput);
+    return result;
+}
+
+GpuNumericValidationResult gpuValidateSimplexOneStep()
+{
+    GpuNumericValidationResult result;
+    const GpuDeviceStatus device = gpuQueryDevice();
+    result.cuda_available = device.available;
+    if (!device.available)
+    {
+        result.message = device.message;
+        return result;
+    }
+
+    constexpr int pointCount = 24;
+    std::vector<double> voltages(pointCount);
+    std::vector<double> measured(pointCount);
+    std::vector<double> sigma(pointCount, 1e-2);
+    const double trueParams[] = {1.0e-10, 1.5, 0.1, 1000.0};
+    double startParams[] = {1.2e-10, 1.45, 0.2, 900.0};
+    const double minBounds[] = {1e-15, 0.5, 0.0, 10.0};
+    const double maxBounds[] = {1e-5, 3.0, 10.0, 1e6};
+    for (int i = 0; i < pointCount; ++i)
+    {
+        voltages[i] = -0.3 + 0.9 * static_cast<double>(i) / static_cast<double>(pointCount - 1);
+        measured[i] = evaluateDiodeIV4(voltages[i], trueParams, 300.0);
+    }
+
+    std::vector<FitParam> fitParams = {
+        FitParam("I0", startParams[0], minBounds[0], maxBounds[0], true),
+        FitParam("A", startParams[1], minBounds[1], maxBounds[1], true),
+        FitParam("Rs", startParams[2], minBounds[2], maxBounds[2], true),
+        FitParam("Rsh", startParams[3], minBounds[3], maxBounds[3], true),
+    };
+    auto objective = makeDiodeIVObjective(
+        fitParams,
+        [](double voltage, const double* params) { return evaluateDiodeIV4(voltage, params, 300.0); },
+        voltages,
+        measured,
+        sigma);
+    SANelderMead cpuSolver(fitParams, objective, 1.0, 2.0, 0.5, 0.5, 1e-12, false, SAConfig{}, 0, false, std::max(1, pointCount - 4));
+    cpuSolver.initSimplex();
+    cpuSolver.step();
+    const SimplexState& cpuState = cpuSolver.state();
+
+    GpuParamLayout layout = makeFourParamLayout(startParams, minBounds, maxBounds, pointCount);
+    GpuNmConfig config;
+    double* deviceVoltages = nullptr;
+    double* deviceMeasured = nullptr;
+    double* deviceSigma = nullptr;
+    GpuSimplexStepResult* deviceResult = nullptr;
+    GpuSimplexStepResult gpuResult;
+    cudaError_t error = cudaMalloc(&deviceVoltages, voltages.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceMeasured, measured.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceSigma, sigma.size() * sizeof(double));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMalloc(&deviceResult, sizeof(GpuSimplexStepResult));
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceVoltages, voltages.data(), voltages.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceMeasured, measured.data(), measured.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(deviceSigma, sigma.data(), sigma.size() * sizeof(double), cudaMemcpyHostToDevice);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    simplexOneStepKernel<<<1, 32>>>(GpuModelType::Diode4P, layout, config, deviceVoltages, deviceMeasured, deviceSigma, pointCount, deviceResult);
+    error = cudaGetLastError();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaDeviceSynchronize();
+    if (error != cudaSuccess)
+        goto cuda_failure;
+    error = cudaMemcpy(&gpuResult, deviceResult, sizeof(GpuSimplexStepResult), cudaMemcpyDeviceToHost);
+    if (error != cudaSuccess)
+        goto cuda_failure;
+
+    result.passed = true;
+    result.cases_checked = gpuResult.n_vertices * (gpuResult.n_free + 1);
+    result.passed = result.passed && gpuResult.n_vertices == static_cast<int>(cpuState.vertices.size());
+    result.passed = result.passed && gpuResult.n_free == static_cast<int>(cpuState.vertices.front().size());
+    result.passed = result.passed && gpuResult.best_idx == cpuState.best_idx;
+    result.passed = result.passed && gpuResult.worst_idx == cpuState.worst_idx;
+    result.passed = result.passed && gpuResult.iteration == cpuState.iteration;
+    for (int vertex = 0; vertex < gpuResult.n_vertices; ++vertex)
+    {
+        const double chiAbsError = std::abs(gpuResult.chi2[vertex] - cpuState.chi2_values[vertex]);
+        const double chiRelError = relativeError(gpuResult.chi2[vertex], cpuState.chi2_values[vertex]);
+        result.max_abs_error = std::max(result.max_abs_error, chiAbsError);
+        result.max_rel_error = std::max(result.max_rel_error, chiRelError);
+        result.passed = result.passed && chiRelError < 1e-7;
+        for (int j = 0; j < gpuResult.n_free; ++j)
+        {
+            const double absError = std::abs(gpuResult.vertices[vertex][j] - cpuState.vertices[vertex][j]);
+            const double relError = relativeError(gpuResult.vertices[vertex][j], cpuState.vertices[vertex][j]);
+            result.max_abs_error = std::max(result.max_abs_error, absError);
+            result.max_rel_error = std::max(result.max_rel_error, relError);
+            result.passed = result.passed && absError < 1e-12;
+        }
+    }
+
+    {
+        std::ostringstream stream;
+        stream << (result.passed ? "GPU simplex one-step validation PASS" : "GPU simplex one-step validation FAIL")
+               << ": cases=" << result.cases_checked
+               << ", max_abs_error=" << result.max_abs_error
+               << ", max_rel_error=" << result.max_rel_error
+               << ", step_type=" << gpuResult.step_type;
+        result.message = stream.str();
+    }
+    freeDevice(deviceVoltages);
+    freeDevice(deviceMeasured);
+    freeDevice(deviceSigma);
+    freeDevice(deviceResult);
+    return result;
+
+cuda_failure:
+    result.message = "CUDA simplex one-step validation failed: " + cudaErrorMessage(error);
+    freeDevice(deviceVoltages);
+    freeDevice(deviceMeasured);
+    freeDevice(deviceSigma);
+    freeDevice(deviceResult);
+    return result;
+}
