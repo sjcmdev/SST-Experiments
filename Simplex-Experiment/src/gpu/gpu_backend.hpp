@@ -58,10 +58,31 @@ struct GpuMonteCarloOutput
     double total_ms = 0.0;
 };
 
+struct GpuSimplexParityCase
+{
+    int iterations = 0;
+    bool passed = false;
+    int cases_checked = 0;
+    double max_abs_error = 0.0;
+    double max_rel_error = 0.0;
+    std::string message;
+    std::string cpu_trace;
+    std::string gpu_trace;
+};
+
+struct GpuSimplexParityReport
+{
+    bool cuda_available = false;
+    bool passed = false;
+    std::string message;
+    std::vector<GpuSimplexParityCase> cases;
+};
+
 GpuDeviceStatus gpuQueryDevice();
 GpuLambertWValidationResult gpuValidateLambertW();
 GpuNumericValidationResult gpuValidateDiodeCurrent();
 GpuNumericValidationResult gpuValidateNoise();
 GpuNumericValidationResult gpuValidateSimplexOneStep();
 GpuNumericValidationResult gpuValidateSimplexFull();
+GpuSimplexParityReport gpuValidateSimplexParityTrace();
 GpuMonteCarloOutput gpuRunMonteCarlo(const GpuMonteCarloRequest& request);

@@ -19,18 +19,13 @@
 #include "app.hpp"
 #include "gui.hpp"
 
-// ---------------------------------------------------------------------------
-static void glfwErrorCallback(int error, const char *description)
+static void glfwErrorCallback(int error, const char* description)
 {
     fprintf(stderr, "[GLFW] Error %d: %s\n", error, description);
 }
 
-// ---------------------------------------------------------------------------
 int main()
 {
-    // -----------------------------------------------------------------------
-    // 1. GLFW
-    // -----------------------------------------------------------------------
     glfwSetErrorCallback(glfwErrorCallback);
 
     if (!glfwInit())
@@ -39,17 +34,16 @@ int main()
         return 1;
     }
 
-    // OpenGL 3.3 Core — wystarczy dla ImGui, obsługiwane przez wszystkie
-    // współczesne GPU NVIDIA.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // Na macOS byłoby potrzebne GLFW_OPENGL_FORWARD_COMPAT — tu nie trzeba.
 
-    GLFWwindow *window = glfwCreateWindow(
-        1400, 900,
-        "Nealder Mead Experiment",
-        nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(
+        1400,
+        900,
+        "Nelder-Mead Simplex Experiment",
+        nullptr,
+        nullptr);
     if (!window)
     {
         fprintf(stderr, "[GLFW] Failed to create window\n");
@@ -58,11 +52,8 @@ int main()
     }
 
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // VSync: ogranicz do refresh rate monitora
+    glfwSwapInterval(1);
 
-    // -----------------------------------------------------------------------
-    // 2. GLAD — MUSI być po glfwMakeContextCurrent
-    // -----------------------------------------------------------------------
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
     {
         fprintf(stderr, "[GLAD] Failed to initialize OpenGL loader\n");
@@ -70,23 +61,20 @@ int main()
         glfwTerminate();
         return 1;
     }
-    // Opcjonalnie: wypisz wersję OpenGL dla weryfikacji
+
     fprintf(stdout, "[OpenGL] Version: %s\n", glGetString(GL_VERSION));
     fprintf(stdout, "[OpenGL] Renderer: %s\n", glGetString(GL_RENDERER));
 
-    // -----------------------------------------------------------------------
-    // 3. ImGui — MUSI być po GLAD
-    // -----------------------------------------------------------------------
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     ImGui::StyleColorsDark();
-    ImGuiStyle &style = ImGui::GetStyle();
+    ImGuiStyle& style = ImGui::GetStyle();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         style.WindowRounding = 0.0f;
@@ -95,32 +83,25 @@ int main()
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
-
-
     ImNodes::CreateContext();
-    ImNodes::StyleColorsDark(); // opcjonalnie
+    ImNodes::StyleColorsDark();
     ImPlot::CreateContext();
 
     AppState state;
-    appInit(state); // query GPU + generacja sygnałów
-
+    appInit(state);
 
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
 
-        // Nowa klatka ImGui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
-        // Renderuj UI aplikacji
         guiRender(state);
-
-        // Zakończ klatkę ImGui i wyrenderuj do OpenGL
         ImGui::Render();
 
-        int fbW, fbH;
+        int fbW = 0;
+        int fbH = 0;
         glfwGetFramebufferSize(window, &fbW, &fbH);
         glViewport(0, 0, fbW, fbH);
         glClearColor(0.12f, 0.12f, 0.13f, 1.0f);
@@ -129,7 +110,7 @@ int main()
 
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            GLFWwindow *backupCurrentContext = glfwGetCurrentContext();
+            GLFWwindow* backupCurrentContext = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backupCurrentContext);
@@ -137,8 +118,6 @@ int main()
 
         glfwSwapBuffers(window);
     }
-
-   
 
     ImNodes::DestroyContext();
     ImPlot::DestroyContext();

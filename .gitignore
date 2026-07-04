@@ -5,5 +5,16 @@
 *.ini
 *.pdb
 *.db
+*.lib
+*.obj
 .vs/
+.venv/
+.venv-wsl/
 build/
+*.exe
+*.exp
+*.json
+GPU-integration/.codex-tools/
+Simplex-Experiment/graphify-out/
+Simplex-Experiment/jax_mc_*.txt
+jax_mc_*.txt

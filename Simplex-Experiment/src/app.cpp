@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cctype>
 #include <filesystem>
@@ -31,6 +32,27 @@ struct LoadedCurve
     double temperature = 300.0;
     std::string label;
 };
+
+uint64_t splitmix64Host(uint64_t value)
+{
+    value += 0x9E3779B97F4A7C15ULL;
+    value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    value = (value ^ (value >> 27)) * 0x94D049BB133111EBULL;
+    return value ^ (value >> 31);
+}
+
+double unitFromBitsHost(uint64_t bits)
+{
+    return ((bits >> 11) + 1.0) * (1.0 / 9007199254740993.0);
+}
+
+double deterministicNormalHost(uint64_t seed, int index)
+{
+    const uint64_t base = seed + static_cast<uint64_t>(index) * 0x9E3779B97F4A7C15ULL;
+    const double u1 = unitFromBitsHost(splitmix64Host(base));
+    const double u2 = unitFromBitsHost(splitmix64Host(base + 0xD1B54A32D192ED03ULL));
+    return std::sqrt(-2.0 * std::log(u1)) * std::cos(6.28318530717958647692 * u2);
+}
 
 std::vector<double> currentParamValues(const ModelConfig& model)
 {
@@ -185,81 +207,31 @@ double evaluateCurrentModel(const ModelConfig& model, double voltage, const doub
 std::vector<double> makeSigmaVector(const AppState& appState)
 {
     const std::vector<double>& curve = appState.iv_data.has_model ? appState.iv_data.I_model : appState.iv_data.V;
-    const size_t count = curve.size();
-    if (appState.noise.sigma_mode == 3)
-    {
-        std::vector<double> sigma(count);
-        const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
-        for (size_t i = 0; i < count; ++i)
-            sigma[i] = std::max(std::abs(curve[i]) * factor, 1e-30);
-        return sigma;
-    }
-
-    double sigma = appState.noise.sigma;
-    if ((appState.noise.sigma_mode == 1 || appState.noise.relative) && appState.iv_data.has_model)
-    {
-        double maxAbs = 0.0;
-        for (double value : curve)
-            maxAbs = std::max(maxAbs, std::abs(value));
-        sigma *= std::max(maxAbs, 1e-30);
-    }
-    else if (appState.noise.sigma_mode == 2)
-    {
-        sigma *= std::max(std::abs(appState.noise.reference_current), 1e-30);
-    }
-    return std::vector<double>(count, std::max(sigma, 1e-30));
-}
-
-double noiseSigmaForCurve(const AppState& appState, const std::vector<double>& curve)
-{
-    double sigma = appState.noise.sigma;
-    if (appState.noise.sigma_mode == 1 || appState.noise.relative)
-    {
-        double maxAbs = 0.0;
-        for (double value : curve)
-            maxAbs = std::max(maxAbs, std::abs(value));
-        sigma *= std::max(maxAbs, 1e-30);
-    }
-    else if (appState.noise.sigma_mode == 2)
-    {
-        sigma *= std::max(std::abs(appState.noise.reference_current), 1e-30);
-    }
-    return std::max(sigma, 1e-30);
+    std::vector<double> sigma(curve.size());
+    const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
+    for (size_t i = 0; i < curve.size(); ++i)
+        sigma[i] = std::max(std::abs(curve[i] * factor), 1e-30);
+    return sigma;
 }
 
 std::vector<double> noiseSigmaVectorForCurve(const AppState& appState, const std::vector<double>& curve)
 {
-    if (appState.noise.sigma_mode == 3)
-    {
-        std::vector<double> sigma(curve.size());
-        const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
-        for (size_t i = 0; i < curve.size(); ++i)
-            sigma[i] = std::max(std::abs(curve[i]) * factor, 1e-30);
-        return sigma;
-    }
-    return std::vector<double>(curve.size(), noiseSigmaForCurve(appState, curve));
+    std::vector<double> sigma(curve.size());
+    const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
+    for (size_t i = 0; i < curve.size(); ++i)
+        sigma[i] = std::max(std::abs(curve[i] * factor), 1e-30);
+    return sigma;
 }
 
 std::vector<double> addNoiseToCurve(AppState& appState, const std::vector<double>& curve, std::mt19937& rng)
 {
     std::vector<double> noisy(curve.size());
-    if (appState.noise.sigma_mode == 3)
-    {
-        const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
-        std::normal_distribution<double> distribution(0.0, 1.0);
-        for (size_t i = 0; i < curve.size(); ++i)
-        {
-            const double noise = curve[i] * factor;
-            noisy[i] = curve[i] + distribution(rng) * noise;
-        }
-        return noisy;
-    }
-
-    const std::vector<double> sigma = noiseSigmaVectorForCurve(appState, curve);
+    const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
+    std::normal_distribution<double> distribution(0.0, 1.0);
     for (size_t i = 0; i < curve.size(); ++i)
     {
-        std::normal_distribution<double> distribution(0.0, sigma[i]);
-        noisy[i] = curve[i] + distribution(rng);
+        const double noise = curve[i] * factor;
+        noisy[i] = curve[i] + distribution(rng) * noise;
     }
     return noisy;
 }
@@ -446,6 +418,12 @@ void AppState::log(LogLevel level, const std::string& message)
         log_entries.erase(log_entries.begin(), log_entries.begin() + static_cast<long long>(log_entries.size() - 500));
 }
 
+bool appAcceptsReducedChi2(const AppState& appState, double reducedChi2)
+{
+    const double tolerance = std::max(0.0, appState.mc_accept_rchi2_tolerance);
+    return std::isfinite(reducedChi2) && std::abs(reducedChi2 - appState.mc_accept_rchi2_center) <= tolerance;
+}
+
 void appInit(AppState& appState)
 {
 #ifndef NDEBUG
@@ -538,7 +516,7 @@ void appRunGpuMonteCarlo(AppState& appState)
     request.nm_config.sigma_shrink = appState.solver_cfg.nm_sigma;
     request.nm_config.degenerate_tol = appState.solver_cfg.degenerate_tol;
     request.nm_config.max_iter = std::max(1, appState.gpu_state.mc_max_iter);
-    request.nm_config.reduced_chi2_tol = appState.gpu_state.mc_reduced_chi2_tol;
+    request.nm_config.reduced_chi2_tol = 0.0;
     request.voltages = appState.iv_data.V;
     request.true_current = appState.iv_data.I_model;
     request.n_samples = std::clamp(appState.gpu_state.mc_samples, 1, 100000);
@@ -568,7 +546,9 @@ void appRunGpuMonteCarlo(AppState& appState)
             result.delta_reduced_chi2 = result.reduced_chi2_min - bestReducedChi2;
     }
     appState.gpu_state.mc_full_params.clear();
+    appState.gpu_state.mc_fitted_curves.clear();
     appState.gpu_state.mc_full_params.reserve(appState.gpu_state.mc_results.size());
+    appState.gpu_state.mc_fitted_curves.reserve(appState.gpu_state.mc_results.size());
     appState.gpu_state.mc_n_free = request.layout.n_free;
     appState.gpu_state.mc_dof = request.layout.dof;
     for (const GpuMcResult& result : appState.gpu_state.mc_results)
@@ -578,9 +558,66 @@ void appRunGpuMonteCarlo(AppState& appState)
             full[i] = appState.model.params[i].value;
         for (int j = 0; j < result.n_free; ++j)
             full[static_cast<size_t>(request.layout.free_to_total[j])] = result.best_free_params[j];
+        appState.gpu_state.mc_fitted_curves.push_back(fittedCurveFor(appState, full, appState.model.T));
         appState.gpu_state.mc_full_params.push_back(std::move(full));
     }
     appState.gpu_state.mc_has_results = true;
+}
+
+void appRunCpuMonteCarlo(AppState& appState)
+{
+    if (!appState.iv_data.has_model || appState.iv_data.V.empty())
+        appGenerateIVCurve(appState);
+
+    const auto started = std::chrono::steady_clock::now();
+    const int samples = std::clamp(appState.cpu_state.mc_samples, 1, 100000);
+    const int maxIter = std::max(1, appState.cpu_state.mc_max_iter);
+    const double factor = std::clamp(appState.noise.sigma, 0.0, 100.0) / 100.0;
+    const std::vector<double> sigma = noiseSigmaVectorForCurve(appState, appState.iv_data.I_model);
+    appState.cpu_state.mc_results.clear();
+    appState.cpu_state.mc_results.reserve(static_cast<size_t>(samples));
+    appState.cpu_state.mc_has_results = false;
+    appState.cpu_state.mc_status = "CPU MC running...";
+
+    try
+    {
+        for (int sample = 0; sample < samples; ++sample)
+        {
+            std::vector<double> measured(appState.iv_data.I_model.size());
+            const uint64_t sampleSeed = appState.noise.seed + static_cast<uint64_t>(sample) * 0xD1B54A32D192ED03ULL;
+            for (int point = 0; point < static_cast<int>(measured.size()); ++point)
+            {
+                const double noise = appState.iv_data.I_model[static_cast<size_t>(point)] * factor;
+                measured[static_cast<size_t>(point)] =
+                    appState.iv_data.I_model[static_cast<size_t>(point)] + deterministicNormalHost(sampleSeed, point) * noise;
+            }
+
+            auto solver = makeSolverForData(appState, measured, sigma, appState.model.T, nullptr);
+            solver->initSimplex();
+            const FitResult fit = solver->runUntilConvergence(maxIter, 0.0);
+
+            CpuMcResult row;
+            row.reduced_chi2_min = fit.reduced_chi2_min;
+            row.iterations = fit.iterations;
+            row.accepted = appAcceptsReducedChi2(appState, fit.reduced_chi2_min);
+            row.full_params = solver->bestFullParams();
+            row.fitted_curve = fittedCurveFor(appState, row.full_params, appState.model.T);
+            appState.cpu_state.mc_results.push_back(std::move(row));
+        }
+    }
+    catch (const std::exception& exception)
+    {
+        appState.cpu_state.mc_status = exception.what();
+        appState.log(LogLevel::Error, exception.what());
+        return;
+    }
+
+    const auto finished = std::chrono::steady_clock::now();
+    appState.cpu_state.mc_total_ms =
+        std::chrono::duration<double, std::milli>(finished - started).count();
+    appState.cpu_state.mc_has_results = true;
+    appState.cpu_state.mc_status = "CPU MC finished: samples=" + std::to_string(samples);
+    appState.log(LogLevel::Info, appState.cpu_state.mc_status);
 }
 
 void appApplyMgrFigure313Preset(AppState& appState)
@@ -592,14 +629,16 @@ void appApplyMgrFigure313Preset(AppState& appState)
     appState.model.N_points = 100;
     appState.model.params[0] = FitParam("I0", 1.5e-9, 1.0e-10, 1.0e-8, true);
     appState.model.params[1] = FitParam("A", 2.0, 1.0, 3.0, true);
-    appState.model.params[2] = FitParam("Rs", 15.0, 0.0, 100.0, false);
-    appState.model.params[3] = FitParam("Rsh", 50000.0, 100.0, 1.0e6, false);
-    appState.gpu_state.mc_noise_pct = 1.0;
-    appState.gpu_state.mc_samples = 5000;
+    appState.model.params[2] = FitParam("Rs", 15.0, 0.0, 100.0, true);
+    appState.model.params[3] = FitParam("Rsh", 50000.0, 100.0, 1.0e6, true);
+    appState.noise.sigma = 5.0;
+    appState.gpu_state.mc_noise_pct = 5.0;
+    appState.gpu_state.mc_samples = 500;
     appState.gpu_state.mc_max_iter = 500;
-    appState.gpu_state.mc_reduced_chi2_tol = 1.0;
+    appState.cpu_state.mc_samples = 64;
+    appState.cpu_state.mc_max_iter = 500;
     appGenerateIVCurve(appState);
-    appState.log(LogLevel::Info, "Applied MGR Fig. 3.13 preset: I0=1.5e-9, A=2, Rsh=50000, Rs=15, noise=1%, MC=5000");
+    appState.log(LogLevel::Info, "Applied MGR Fig. 3.13 preset: 4 free params, noise=5%");
 }
 
 void appGenerateIVCurve(AppState& appState)

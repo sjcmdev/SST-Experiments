@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "implot.h"
+#include "solver/diode_model.hpp"
 #include "solver/trace_utils.hpp"
 
 #include <algorithm>
@@ -233,6 +234,27 @@ int degreesOfFreedom(const AppState& state)
     return std::max(1, points - freeCount);
 }
 
+ImVec4 fitColor(int index)
+{
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
+    ImGui::ColorConvertHSVtoRGB(std::fmod(0.13f * static_cast<float>(index), 1.0f), 0.78f, 0.95f, r, g, b);
+    return ImVec4(r, g, b, 1.0f);
+}
+
+std::vector<double> fittedCurveForParams(const AppState& state, const std::vector<double>& params)
+{
+    std::vector<double> curve(state.iv_data.V.size());
+    for (size_t i = 0; i < state.iv_data.V.size(); ++i)
+    {
+        curve[i] = state.model.use_6param
+            ? evaluateDiodeIV6(state.iv_data.V[i], params.data(), state.model.T)
+            : evaluateDiodeIV4(state.iv_data.V[i], params.data(), state.model.T);
+    }
+    return curve;
+}
+
 void plotColoredSimplexPair(
     const char* title,
     const SimplexState& simplexState,
@@ -337,8 +359,8 @@ void modelParamRow(FitParam& param)
 void guiModeTabs(AppState& state)
 {
     ImGui::Begin("Mode");
-    const char* tabs[] = {"Single Fit", "Batch Fitting", "Simplex Inspector"};
-    for (int i = 0; i < 3; ++i)
+    const char* tabs[] = {"Single Fit", "Simplex Inspector"};
+    for (int i = 0; i < 2; ++i)
     {
         if (i > 0)
             ImGui::SameLine();
@@ -425,9 +447,6 @@ void guiTabModel(AppState& state)
         ImGui::Combo("Data file", &state.data_import.selected_index, fileLabelPtrs.data(), static_cast<int>(fileLabelPtrs.size()));
         if (ImGui::Button("Load selected data"))
             appLoadSelectedDataFile(state);
-        ImGui::SameLine();
-        if (ImGui::Button("Load all as sweep"))
-            appLoadAllDataFiles(state);
     }
     else
     {
@@ -435,85 +454,17 @@ void guiTabModel(AppState& state)
     }
     if (!state.data_import.status.empty())
         ImGui::TextWrapped("%s", state.data_import.status.c_str());
-
-    ImGui::SeparatorText("Range / Sweep Generator");
-    ImGui::Checkbox("Sweep temperature", &state.sweep_cfg.temperature_enabled);
-    if (!state.sweep_cfg.temperature_enabled)
-        ImGui::BeginDisabled();
-    ImGui::InputDouble("T from", &state.sweep_cfg.T_min, 1.0, 10.0, "%.2f");
-    ImGui::InputDouble("T to", &state.sweep_cfg.T_max, 1.0, 10.0, "%.2f");
-    ImGui::InputDouble("T step", &state.sweep_cfg.T_step, 1.0, 10.0, "%.2f");
-    if (!state.sweep_cfg.temperature_enabled)
-        ImGui::EndDisabled();
-
-    const char* relations[] = {
-        "T only: A/I0 fixed",
-        "A(T) = A0 + slope*(T-Tref)",
-        "I0(T) = I00*10^(slope*(T-Tref))",
-        "A(T) + I0(T)"
-    };
-    state.sweep_cfg.temperature_relation = std::clamp(state.sweep_cfg.temperature_relation, 0, 3);
-    ImGui::Combo("T relation", &state.sweep_cfg.temperature_relation, relations, 4);
-    ImGui::InputDouble("T ref [K]", &state.sweep_cfg.T_ref, 1.0, 10.0, "%.2f");
-    if (state.sweep_cfg.temperature_relation != 1 && state.sweep_cfg.temperature_relation != 3)
-        ImGui::BeginDisabled();
-    ImGui::InputDouble("A slope / K", &state.sweep_cfg.A_slope_per_K, 0.001, 0.01, "%.4e");
-    if (state.sweep_cfg.temperature_relation != 1 && state.sweep_cfg.temperature_relation != 3)
-        ImGui::EndDisabled();
-    if (state.sweep_cfg.temperature_relation != 2 && state.sweep_cfg.temperature_relation != 3)
-        ImGui::BeginDisabled();
-    ImGui::InputDouble("log10(I0) slope / K", &state.sweep_cfg.log10_I0_slope_per_K, 0.001, 0.01, "%.4e");
-    if (state.sweep_cfg.temperature_relation != 2 && state.sweep_cfg.temperature_relation != 3)
-        ImGui::EndDisabled();
-
-    ImGui::Checkbox("Sweep parameter", &state.sweep_cfg.parameter_enabled);
-    if (!state.sweep_cfg.parameter_enabled)
-        ImGui::BeginDisabled();
-    std::vector<const char*> paramNames;
-    for (const FitParam& param : state.model.params)
-        paramNames.push_back(param.name.c_str());
-    if (!paramNames.empty())
-    {
-        state.sweep_cfg.parameter_index = std::clamp(state.sweep_cfg.parameter_index, 0, static_cast<int>(paramNames.size()) - 1);
-        ImGui::Combo("Parameter", &state.sweep_cfg.parameter_index, paramNames.data(), static_cast<int>(paramNames.size()));
-    }
-    ImGui::InputDouble("Param from", &state.sweep_cfg.parameter_min, 0.0, 0.0, "%.3e");
-    ImGui::InputDouble("Param to", &state.sweep_cfg.parameter_max, 0.0, 0.0, "%.3e");
-    ImGui::InputDouble("Param step", &state.sweep_cfg.parameter_step, 0.0, 0.0, "%.3e");
-    if (!state.sweep_cfg.parameter_enabled)
-        ImGui::EndDisabled();
-    ImGui::InputInt("Max curves", &state.sweep_cfg.max_curves);
-    if (ImGui::Button("Generate Sweep Curves"))
-        appGenerateSweepCurves(state);
 }
 
 void guiTabNoise(AppState& state)
 {
-    const char* sigmaModes[] = {
-        "Absolute [A]",
-        "Relative to curve |Imax|",
-        "Relative to I reference",
-        "Percent per point"
-    };
-    if (ImGui::Combo("Sigma mode", &state.noise.sigma_mode, sigmaModes, 4))
-        state.noise.relative = state.noise.sigma_mode == 1;
-
-    const double sliderMin = state.noise.sigma_mode == 3 ? 0.0 : 1e-12;
-    const double sliderMax = state.noise.sigma_mode == 0 ? 1e-3 : (state.noise.sigma_mode == 3 ? 100.0 : 1.0);
-    const char* sigmaFormat = state.noise.sigma_mode == 3 ? "%.2f %%" : "%.3e";
-    bool noiseChanged = sliderDouble(state.noise.sigma_mode == 3 ? "Noise [%]" : "Sigma slider", &state.noise.sigma, sliderMin, sliderMax, sigmaFormat);
-    noiseChanged = ImGui::InputDouble(state.noise.sigma_mode == 3 ? "Noise value [%]" : "Sigma", &state.noise.sigma, 0.0, 0.0, sigmaFormat) || noiseChanged;
-    if (state.noise.sigma_mode == 3)
-        state.noise.sigma = std::clamp(state.noise.sigma, 0.0, 100.0);
+    state.noise.sigma_mode = 3;
+    state.noise.relative = false;
+    bool noiseChanged = sliderDouble("Noise [%]", &state.noise.sigma, 0.0, 100.0, "%.2f %%");
+    noiseChanged = ImGui::InputDouble("Noise value [%]", &state.noise.sigma, 0.0, 0.0, "%.2f") || noiseChanged;
+    state.noise.sigma = std::clamp(state.noise.sigma, 0.0, 100.0);
     ImGui::InputScalar("Seed", ImGuiDataType_U32, &state.noise.seed);
-
-    if (state.noise.sigma_mode != 2)
-        ImGui::BeginDisabled();
-    ImGui::InputDouble("I reference [A]", &state.noise.reference_current, 0.0, 0.0, "%.3e");
-    if (state.noise.sigma_mode != 2)
-        ImGui::EndDisabled();
-    if (state.noise.sigma_mode == 3)
-        ImGui::TextDisabled("Noise: I += N(0,1) * (I * noise / 100) for every point.");
+    ImGui::TextDisabled("Noise: I += N(0,1) * (I * noise / 100) for every point.");
     ImGui::Checkbox("Live update noise", &state.noise.live_update);
     if (state.noise.live_update && noiseChanged && state.iv_data.has_model)
         appAddNoise(state);
@@ -528,13 +479,7 @@ void guiTabNoise(AppState& state)
     double maxAbs = 0.0;
     for (double value : state.iv_data.I_model)
         maxAbs = std::max(maxAbs, std::abs(value));
-    double sigmaAbs = state.noise.sigma;
-    if (state.noise.sigma_mode == 1 || state.noise.relative)
-        sigmaAbs *= maxAbs;
-    else if (state.noise.sigma_mode == 2)
-        sigmaAbs *= std::max(std::abs(state.noise.reference_current), 1e-30);
-    else if (state.noise.sigma_mode == 3)
-        sigmaAbs = maxAbs * std::clamp(state.noise.sigma, 0.0, 100.0) / 100.0;
+    const double sigmaAbs = maxAbs * std::clamp(state.noise.sigma, 0.0, 100.0) / 100.0;
     ImGui::SeparatorText("Preview");
     ImGui::Text("I_max: %.3e A", maxAbs);
     ImGui::Text("sigma_abs: %.3e A", sigmaAbs);
@@ -648,12 +593,31 @@ void guiTabGpu(AppState& state)
             ImGui::TextWrapped("%s", simplexFull.message.c_str());
     }
 
+    ImGui::SeparatorText("MC acceptance");
+    ImGui::InputDouble("Accept center reduced chi2", &state.mc_accept_rchi2_center, 0.0, 0.0, "%.3f");
+    ImGui::InputDouble("Accept +/- reduced chi2", &state.mc_accept_rchi2_tolerance, 0.0, 0.0, "%.3f");
+    state.mc_accept_rchi2_tolerance = std::max(0.0, state.mc_accept_rchi2_tolerance);
+    ImGui::TextDisabled("Default proposal: accept abs(reduced chi2 - 1) <= 0.3.");
+
+    ImGui::SeparatorText("CPU Monte Carlo");
+    ImGui::InputInt("CPU samples", &state.cpu_state.mc_samples);
+    ImGui::InputInt("CPU simplex iterations", &state.cpu_state.mc_max_iter);
+    if (ImGui::Button("Run CPU MC"))
+        appRunCpuMonteCarlo(state);
+    ImGui::TextWrapped("%s", state.cpu_state.mc_status.c_str());
+    if (state.cpu_state.mc_has_results)
+    {
+        int accepted = 0;
+        for (const CpuMcResult& result : state.cpu_state.mc_results)
+            accepted += result.accepted ? 1 : 0;
+        ImGui::Text("CPU accepted: %d/%d, total %.3f ms", accepted, static_cast<int>(state.cpu_state.mc_results.size()), state.cpu_state.mc_total_ms);
+    }
+
     ImGui::SeparatorText("GPU Monte Carlo");
-    ImGui::InputInt("MC iterations / samples", &state.gpu_state.mc_samples);
-    ImGui::InputInt("Simplex max iterations", &state.gpu_state.mc_max_iter);
-    sliderDouble("MC noise [%]", &state.gpu_state.mc_noise_pct, 0.0, 100.0, "%.3f");
-    ImGui::InputScalar("MC seed", ImGuiDataType_U32, &state.gpu_state.mc_noise_seed);
-    ImGui::InputDouble("MC reduced chi2 tol", &state.gpu_state.mc_reduced_chi2_tol, 0.0, 0.0, "%.3e");
+    ImGui::InputInt("GPU samples", &state.gpu_state.mc_samples);
+    ImGui::InputInt("GPU simplex iterations", &state.gpu_state.mc_max_iter);
+    sliderDouble("GPU noise [%]", &state.gpu_state.mc_noise_pct, 0.0, 100.0, "%.3f");
+    ImGui::InputScalar("GPU seed", ImGuiDataType_U32, &state.gpu_state.mc_noise_seed);
     if (ImGui::Button("Apply MGR Fig. 3.13 preset"))
         appApplyMgrFigure313Preset(state);
     ImGui::SameLine();
@@ -675,6 +639,10 @@ void guiTabGpu(AppState& state)
     }
     if (state.gpu_state.mc_has_results)
     {
+        int accepted = 0;
+        for (const GpuMcResult& result : state.gpu_state.mc_results)
+            accepted += appAcceptsReducedChi2(state, result.reduced_chi2_min) ? 1 : 0;
+        ImGui::Text("GPU accepted: %d/%d", accepted, static_cast<int>(state.gpu_state.mc_results.size()));
         const SigmaThresholds thresholds = reducedThresholdsFor(state.gpu_state.mc_n_free, state.gpu_state.mc_dof);
         ImGui::Text("Thresholds Δreduced chi2: 1σ=%.3e 2σ=%.3e 3σ=%.3e", thresholds.one, thresholds.two, thresholds.three);
     }
@@ -719,7 +687,7 @@ void guiPanelGpuMcTable(AppState& state)
         ImGui::TableSetupColumn("fit reduced");
         ImGui::TableSetupColumn("ref reduced");
         ImGui::TableSetupColumn("iters");
-        ImGui::TableSetupColumn("conv");
+        ImGui::TableSetupColumn("accept");
         ImGui::TableHeadersRow();
         for (int i = 0; i < static_cast<int>(state.gpu_state.mc_results.size()); ++i)
         {
@@ -730,7 +698,7 @@ void guiPanelGpuMcTable(AppState& state)
             ImGui::TableSetColumnIndex(2); ImGui::Text("%.3e", result.reduced_chi2_min);
             ImGui::TableSetColumnIndex(3); ImGui::Text("%.3e", result.ref_reduced_chi2);
             ImGui::TableSetColumnIndex(4); ImGui::Text("%d", result.iterations);
-            ImGui::TableSetColumnIndex(5); ImGui::Text("%s", result.converged ? "yes" : "no");
+            ImGui::TableSetColumnIndex(5); ImGui::Text("%s", appAcceptsReducedChi2(state, result.reduced_chi2_min) ? "yes" : "no");
         }
         ImGui::EndTable();
     }
@@ -917,6 +885,94 @@ void guiPanelGpuMcScatter(AppState& state)
     plotGpuMcPair(state, "Rs", "Rsh");
     plotGpuMcPair(state, "Rsh", "Rsh2");
     plotGpuMcPair(state, "alpha", "Rsh2");
+}
+
+void plotAcceptedFitsWindow(AppState& state, const char* title, bool gpu)
+{
+    ImGui::Begin(title);
+    const bool hasResults = gpu ? state.gpu_state.mc_has_results : state.cpu_state.mc_has_results;
+    if (!hasResults)
+    {
+        ImGui::TextDisabled(gpu ? "Run GPU MC first." : "Run CPU MC first.");
+        ImGui::End();
+        return;
+    }
+
+    std::vector<const std::vector<double>*> acceptedCurves;
+    std::vector<std::vector<double>> generatedGpuCurves;
+    if (gpu)
+    {
+        generatedGpuCurves.reserve(state.gpu_state.mc_full_params.size());
+        for (size_t i = 0; i < state.gpu_state.mc_results.size(); ++i)
+        {
+            if (!appAcceptsReducedChi2(state, state.gpu_state.mc_results[i].reduced_chi2_min))
+                continue;
+            if (i < state.gpu_state.mc_fitted_curves.size())
+                acceptedCurves.push_back(&state.gpu_state.mc_fitted_curves[i]);
+            else if (i < state.gpu_state.mc_full_params.size())
+            {
+                generatedGpuCurves.push_back(fittedCurveForParams(state, state.gpu_state.mc_full_params[i]));
+                acceptedCurves.push_back(&generatedGpuCurves.back());
+            }
+        }
+    }
+    else
+    {
+        for (const CpuMcResult& result : state.cpu_state.mc_results)
+        {
+            if (result.accepted)
+                acceptedCurves.push_back(&result.fitted_curve);
+        }
+    }
+
+    ImGui::Text("Accepted: %d", static_cast<int>(acceptedCurves.size()));
+    plotAutoFitControls(title);
+
+    std::vector<double> modelY = state.plot_log_y ? logSafeValues(state.iv_data.I_model) : state.iv_data.I_model;
+    std::vector<double> noisyY = state.plot_log_y ? logSafeValues(state.iv_data.I_noisy) : state.iv_data.I_noisy;
+    std::vector<std::vector<double>> fitYs;
+    std::vector<double> autoY;
+    if (state.iv_data.has_model)
+        autoY.insert(autoY.end(), modelY.begin(), modelY.end());
+    if (state.iv_data.has_noisy)
+        autoY.insert(autoY.end(), noisyY.begin(), noisyY.end());
+    fitYs.reserve(acceptedCurves.size());
+    for (const std::vector<double>* curve : acceptedCurves)
+    {
+        fitYs.push_back(state.plot_log_y ? logSafeValues(*curve) : *curve);
+        autoY.insert(autoY.end(), fitYs.back().begin(), fitYs.back().end());
+    }
+
+    if (ImPlot::BeginPlot(title, ImVec2(-1, -1)))
+    {
+        ImPlot::SetupAxes("V [V]", state.plot_log_y ? "|I| [A]" : "I [A]");
+        if (state.plot_log_y)
+            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+        setupAutoFitAxes(title, state.iv_data.V, autoY, false, state.plot_log_y);
+        if (state.iv_data.has_model)
+            ImPlot::PlotLine("Model true", state.iv_data.V.data(), modelY.data(), static_cast<int>(state.iv_data.V.size()));
+        if (state.iv_data.has_noisy)
+            ImPlot::PlotScatter("Noisy data", state.iv_data.V.data(), noisyY.data(), static_cast<int>(state.iv_data.V.size()));
+        for (size_t i = 0; i < fitYs.size(); ++i)
+        {
+            ImPlotSpec spec;
+            spec.LineColor = fitColor(static_cast<int>(i));
+            spec.LineWeight = 1.5f;
+            spec.Flags = ImPlotItemFlags_NoLegend;
+            std::string label = std::string(gpu ? "gpu fit##" : "cpu fit##") + std::to_string(i);
+            ImPlot::PlotLine(label.c_str(), state.iv_data.V.data(), fitYs[i].data(), static_cast<int>(state.iv_data.V.size()), spec);
+        }
+        ImPlot::EndPlot();
+    }
+    ImGui::End();
+}
+
+void guiPanelAcceptedFits(AppState& state)
+{
+    if (state.cpu_state.mc_has_results)
+        plotAcceptedFitsWindow(state, "CPU accepted fitted curves", false);
+    if (state.gpu_state.mc_has_results)
+        plotAcceptedFitsWindow(state, "GPU accepted fitted curves", true);
 }
 
 void guiPanelControls(AppState& state)
@@ -1502,12 +1558,6 @@ void guiRender(AppState& appState)
         guiPanelSimplex2D(appState);
         guiPanelParameterHistories(appState);
     }
-    else if (appState.active_tab == 1)
-    {
-        guiPanelBatchConfig(appState);
-        guiPanelBatchResults(appState);
-        guiPanelBatchStats(appState);
-    }
     else
     {
         guiPanelIVCurve(appState);
@@ -1521,5 +1571,6 @@ void guiRender(AppState& appState)
         guiPanelGpuMcTable(appState);
         guiPanelGpuMcScatter(appState);
     }
+    guiPanelAcceptedFits(appState);
     guiPanelLog(appState);
 }

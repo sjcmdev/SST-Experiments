@@ -54,10 +54,10 @@ struct ModelConfig
 
 struct NoiseConfig
 {
-    double sigma = 1e-6;
+    double sigma = 5.0;
     double reference_current = 1e-3;
     unsigned int seed = 42;
-    int sigma_mode = 0;
+    int sigma_mode = 3;
     bool relative = false;
     bool live_update = false;
 };
@@ -173,6 +173,25 @@ struct BatchState
     double elapsed_s = 0.0;
 };
 
+struct CpuMcResult
+{
+    double reduced_chi2_min = 0.0;
+    int iterations = 0;
+    bool accepted = false;
+    std::vector<double> full_params;
+    std::vector<double> fitted_curve;
+};
+
+struct CpuState
+{
+    int mc_samples = 64;
+    int mc_max_iter = 500;
+    std::vector<CpuMcResult> mc_results;
+    bool mc_has_results = false;
+    std::string mc_status;
+    double mc_total_ms = 0.0;
+};
+
 struct GpuState
 {
     GpuDeviceStatus device;
@@ -189,6 +208,7 @@ struct GpuState
     double mc_reduced_chi2_tol = 1.0;
     std::vector<GpuMcResult> mc_results;
     std::vector<std::vector<double>> mc_full_params;
+    std::vector<std::vector<double>> mc_fitted_curves;
     int mc_n_free = 0;
     int mc_dof = 1;
     bool mc_has_results = false;
@@ -224,7 +244,10 @@ struct AppState
     MultiFitState multi_fit;
     BatchConfig batch_cfg;
     BatchState batch_state;
+    CpuState cpu_state;
     GpuState gpu_state;
+    double mc_accept_rchi2_center = 1.0;
+    double mc_accept_rchi2_tolerance = 0.3;
     std::vector<LogEntry> log_entries;
 
     void log(LogLevel level, const std::string& message);
@@ -247,4 +270,6 @@ void appInitGpu(AppState& appState);
 void appValidateGpuLambertW(AppState& appState);
 void appValidateGpuCore(AppState& appState);
 void appRunGpuMonteCarlo(AppState& appState);
+void appRunCpuMonteCarlo(AppState& appState);
+bool appAcceptsReducedChi2(const AppState& appState, double reducedChi2);
 void appApplyMgrFigure313Preset(AppState& appState);
