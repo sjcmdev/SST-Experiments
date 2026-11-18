@@ -40,3 +40,6 @@ The point of this work is to REPRODUCE A HUMAN SCAPS USER: do everything through
 - Physics checks are mandatory: each phase ends with a table `quantity | expected (theory, formula) | SCAPS | diff | comment`.
 - Be economical: prefer `read(diff=True)`, read panels once, act in batches. Stop the phase if stuck >15 tool calls on one sub-goal; log it as an annoyance and move on.
 - Final message of the run = phase report in Polish (frontmatter `status: active`, `type: experiment`, `tags: [scaps, agent, phase-N]`): goal, what was done, physics-check table, top annoyances, knowledge gained, problems. Max ~120 lines.
+
+- **Set problem twice (owner hint, 2026-11-19):** SCAPS sometimes needs "Set problem" clicked twice before "single shot" (Calculate) does anything. If a calculation does not start, click Set problem again and then retry single shot. Log each occurrence as an annoyance.
+- **build-lock is only for C++ builds and GPU runs.** Python generators and `--check` scripts run directly, without `build-lock.sh`. In phase 1 waiting for the lock cost 7 minutes and left the datasets unchecked.
