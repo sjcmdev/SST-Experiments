@@ -122,9 +122,23 @@ def app_windows(app):
 
 
 def find_window(title):
+    """Resolve a window by exact title, regex, or 'hwnd:<handle>' (from windows()).
+
+    SCAPS can show several panels with the same title; then the topmost one in z-order is used
+    (Desktop.windows enumerates top-down), which is the panel a human would be looking at.
+    """
     if not title.strip():
         raise ToolError("Window title must not be empty")
     visible = Desktop(backend="win32").windows(visible_only=True)
+    if title.startswith("hwnd:"):
+        try:
+            handle = int(title[5:], 0)
+        except ValueError as exc:
+            raise ToolError(f"Invalid window handle in {title!r}") from exc
+        matches = [w for w in visible if w.handle == handle]
+        if not matches:
+            raise ToolError(f"No visible window with {title!r}")
+        return matches[0]
     matches = [w for w in visible if w.window_text() == title]
     if not matches:
         try:
@@ -132,9 +146,11 @@ def find_window(title):
         except re.error as exc:
             raise ToolError(f"Invalid title regex: {exc}") from exc
         matches = [w for w in visible if pattern.search(w.window_text())]
-    if len(matches) != 1:
-        raise ToolError(f"Expected one window for {title!r}, found {len(matches)}")
-    return matches[0]
+    if not matches:
+        raise ToolError(f"No window for {title!r}")
+    # ponytail: z-order tie-break; pass hwnd:<handle> from windows() when a different panel is meant
+    enabled = [w for w in matches if w.is_enabled()]
+    return (enabled or matches)[0]
 
 
 def capture(win):
@@ -217,8 +233,11 @@ async def recognize(win, region=None):
 
 @mcp.tool()
 async def windows(app: str) -> list[dict]:
-    """List visible top-level windows of scaps/propho/origin, including CVI panels."""
-    return [{"title": w.window_text(), "class": w.class_name(), "pid": w.process_id()} for w in app_windows(app)]
+    """List visible top-level windows of scaps/propho/origin, including CVI panels, topmost first.
+
+    Use title 'hwnd:<hwnd>' in read/click/wait/screenshot to address one of several same-titled panels."""
+    return [{"title": w.window_text(), "class": w.class_name(), "pid": w.process_id(), "hwnd": w.handle,
+             "enabled": w.is_enabled()} for w in app_windows(app)]
 
 
 @mcp.tool()
