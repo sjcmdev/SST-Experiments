@@ -319,6 +319,53 @@ async def wait(title: str, seconds: float = 5) -> str:
 
 
 @mcp.tool()
+async def desktop_active() -> str:
+    """'active' if real mouse/keyboard input works now, 'locked' if the Windows lock screen is in front.
+    When locked: read/screenshot/run_script still work, click/type/key do not."""
+    fg = win32gui.GetForegroundWindow()
+    locked = fg and win32gui.GetClassName(fg) == "Windows.UI.Core.CoreWindow" and "LockApp" in _process_name(fg)
+    return "locked" if locked else "active"
+
+
+def _process_name(hwnd):
+    pid = win32process.GetWindowThreadProcessId(hwnd)[1]
+    out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True, text=True).stdout
+    return out.split(",")[0].strip('"')
+
+
+@mcp.tool()
+async def run_script(files: list[str], timeout_s: int = 1800) -> str:
+    """Batch-run SCAPS: `scaps3312.exe <files...>` (e.g. a .def then a .script; SCAPS loads .def, .act, .scaps,
+    .spe, .gen, .sbf, .srf, then runs .script). End the script with `set quitscript quitSCAPS` so SCAPS exits.
+    Works with a locked screen. Returns exit code and duration; results are whatever the script saved."""
+    if app_windows("scaps"):
+        raise ToolError("SCAPS already running; close('scaps') first")
+    paths = [str(Path(f).resolve()) for f in files]
+    missing = [p for p in paths if not Path(p).exists()]
+    if missing:
+        raise ToolError(f"Missing files: {missing}")
+    exe = app_path("scaps")
+    start = time.monotonic()
+    proc = await asyncio.create_subprocess_exec(str(exe), *paths, cwd=str(exe.parent))
+    try:
+        rc = await asyncio.wait_for(proc.wait(), timeout_s)
+    except asyncio.TimeoutError:
+        # Leave SCAPS running so the agent can inspect it; report visible windows and any dialog text.
+        report = [f"TIMEOUT after {timeout_s}s; SCAPS still running (close('scaps') when done)."]
+        for w in app_windows("scaps"):
+            title = w.window_text()
+            report.append(f"window: {title}")
+            if not title.startswith("SCAPS 3.3.12") and title != "scaps3312":
+                try:
+                    _, lines = await recognize(w)
+                    report += ["  " + " ".join(word[0] for word in ln) for ln in lines[:15]]
+                except Exception as exc:  # OCR of a transient dialog may fail; the title is still useful
+                    report.append(f"  (OCR failed: {exc})")
+        return "\n".join(report)
+    return f"exit={rc} seconds={time.monotonic() - start:.1f}"
+
+
+@mcp.tool()
 async def launch(app: str) -> str:
     """Launch a mapped app, or reuse it. ProPho is found by title, not launcher PID."""
     exe = app_path(app)
