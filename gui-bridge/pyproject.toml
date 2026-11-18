@@ -1,0 +1,16 @@
+[project]
+name = "gui-bridge"
+version = "0.1.0"
+description = "Experiment: text-only GUI control (pywinauto) exposed as MCP for SCAPS/ProPho/Origin agents"
+requires-python = ">=3.12"
+dependencies = [
+    "pywinauto>=0.6.9",
+    "mcp>=1.0",
+    "pillow>=13.0.0",
+    "winrt-windows-media-ocr>=4!10.0.28000.2957",
+    "winrt-windows-graphics-imaging>=4!10.0.28000.2957",
+    "winrt-windows-storage-streams>=4!10.0.28000.2957",
+    "winrt-windows-globalization>=4!10.0.28000.2957",
+    "winrt-windows-foundation>=4!10.0.28000.2957",
+    "winrt-windows-foundation-collections>=4!10.0.28000.2957",
+]
