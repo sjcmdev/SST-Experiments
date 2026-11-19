@@ -1,0 +1,74 @@
+schema_version: 1
+case_id: phase11-baseline
+temperature_K: 300
+constants_mode: scaps_compat
+illumination:
+  enabled: false
+  uniform_generation_m3_s: 0
+voltage:
+  start_V: 0
+  stop_V: 0.6
+  step_V: 0.02
+mesh:
+  points_per_layer: 401
+  clustering_beta: 3
+solver:
+  max_newton_iterations: 1000
+  residual_tolerance: 1.0e-10
+  max_line_search_backtracks: 20
+  max_step_multiple_of_Vt: 4
+contacts:
+  left:
+    label: flatband
+    flat_band: true
+    phi_m_eV: 4.5
+    Sn_m_s: 1000.0
+    Sp_m_s: 100000.0
+  right:
+    label: flatband
+    flat_band: true
+    phi_m_eV: 4.5
+    Sn_m_s: 100000.0
+    Sp_m_s: 1000.0
+layers:
+- name: p-base
+  thickness_m: 5.0e-06
+  material:
+    T_ref_K: 300
+    eps_r: 11.7
+    Eg_eV: 1.12
+    chi_eV: 4.05
+    Nc_ref_m3: 2.8e+25
+    Nv_ref_m3: 1.04e+25
+    mu_n_m2_V_s: 0.135
+    mu_p_m2_V_s: 0.048
+    vth_n_ref_m_s: 100000.0
+    vth_p_ref_m_s: 100000.0
+  doping:
+    Nd_m3: 0.0
+    Na_m3: 1.0e+22
+  defects:
+  - label: midgap
+    energy_reference: relative_to_Ev
+    energy_offset_eV: 0.56
+    Nt_m3: 1.0e+20
+    sigma_n_m2: 1.0e-19
+    sigma_p_m2: 1.0e-19
+    charge_type: neutral
+- name: n-window
+  thickness_m: 2.0e-07
+  material:
+    T_ref_K: 300
+    eps_r: 11.7
+    Eg_eV: 1.12
+    chi_eV: 4.05
+    Nc_ref_m3: 2.8e+25
+    Nv_ref_m3: 1.04e+25
+    mu_n_m2_V_s: 0.135
+    mu_p_m2_V_s: 0.048
+    vth_n_ref_m_s: 100000.0
+    vth_p_ref_m_s: 100000.0
+  doping:
+    Nd_m3: 1.0e+24
+    Na_m3: 0.0
+  defects: []

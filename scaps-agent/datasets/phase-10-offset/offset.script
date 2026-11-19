@@ -1,0 +1,218 @@
+set quitscript.quitSCAPS
+set script_display_mode.suppressed
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m20-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m20.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m20.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m20.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m20.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m10-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m10.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m10.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m10.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-m10.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p00-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p00.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p00.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p00.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p00.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p10-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p10.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p10.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p10.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p10.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p20-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p20.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p20.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p20.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p20.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p30-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p30.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p30.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p30.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p30.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p40-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p40.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p40.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p40.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p40.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p60-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p60.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p60.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p60.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p60.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p80-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p80.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.6
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p80.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p80.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\offset-p80.act

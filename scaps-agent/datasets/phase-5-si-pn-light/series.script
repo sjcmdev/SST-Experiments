@@ -1,0 +1,120 @@
+set quitscript.quitSCAPS
+set script_display_mode.suppressed
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-equilibrium.eb
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-equilibrium.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-equilibrium.act
+clear actions
+clear simulations
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1e6
+action dark
+action iv.startv -0.2
+action iv.stopv 0.9
+action iv.increment 0.01
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-dark.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-dark.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-dark.act
+clear actions
+clear simulations
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1e6
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\AM1_5G-1sun.spe
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 0.9
+action iv.increment 0.01
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-light.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-light.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-light.act
+clear actions
+clear simulations
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1e6
+action dark
+action cv.startv -1
+action cv.stopv 0.2
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-cv.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-cv.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\si-pn-cv.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-equilibrium.eb
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-equilibrium.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-equilibrium.act
+clear actions
+clear simulations
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1e6
+action dark
+action iv.startv -0.2
+action iv.stopv 1.2
+action iv.increment 0.01
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-dark.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-dark.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-dark.act
+clear actions
+clear simulations
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1e6
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\AM1_5G-1sun.spe
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.2
+action iv.increment 0.01
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-light.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-light.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-light.act
+clear actions
+clear simulations
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1e6
+action dark
+action cv.startv -1
+action cv.stopv 0.2
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-cv.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-cv.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-5\cdte-cds-cv.act

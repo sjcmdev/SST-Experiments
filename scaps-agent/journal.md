@@ -1,4 +1,4 @@
-# Journal
+﻿# Journal
 
 
 ## 2026-11-18 — phase-0, orientacja (częściowa)
@@ -209,3 +209,131 @@ Wiedza: C i G są na jednostkę powierzchni. Napp SCAPS używa eps10, dlatego Nd
 W tym jobie pełny replay series.script oraz po nim python -m py_compile runs/phase-3/analyze.py i python runs/phase-3/analyze.py — PASS. Kontrole: osiem kompletów, counts/ranges/T/f, exact defect settings, SI round-trip, JSON, finite values, C/G/Z identity, bounds Mott–Schottky/Arrhenius, synthetic Debye recovery. Wykres obejrzany. Python bez locka zgodnie z briefem; bytecode zbudowano w repo runs/phase-3/__pycache__. C++ build nie dotyczy: brak zmian produktu i targetu. Bez git.
 
 SCAPS close=Closed, windows=[] na końcu. Brak nowych screenshots w retry. Problemy otwarte: nieskuteczny input GUI i post-export process failure; pomiary zapisane i sprawdzone.
+
+## 2026-11-19 ~02:20–02:29 CET — phase 5
+
+- Active; state/knowledge/journal tail/AGENT odczytane. GUI Set problem bez efektu; sprawdzono double Set problem, hwnd, normal restart i start przez .def. Script fallback wykonał oba modele.
+- Si p1e16/n+1e18 cm^-3, 5/0,2 µm; CdTe/CdS p1e16/n1e18 cm^-3,4/0,2 µm. Flatband contacts, neutral p defect1e14 cm^-3; pełne .def/.act. 0V EB, dark/light IV,1MHz CV. Osiem datasets phase-5-*.
+- Pierwszy CdTe light do0,9V dawał extrapolated Voc2,882904V; archiwum insufficient-range. Końcowy replay do1,2V:exit6/20,6s. Pierwszy replay po eksportach exit0xC000041D.
+- Vbi Si0,85376922V vs CODATA0,854262628; hetero offsets−0,1/−1eV. MS Na9,868388e21/1,004018e22m^-3. Intercept Si Vbi0,816321V ma odchylenie−4,44%; nie rozstrzygnięto przyczyny. VT z obu plateau ~0,025900V. Manual grep o stałych bez trafień, docs-needed zalogowane.
+- py_compile oraz analyze.py PASS; generator byte-identical replay/inputs PASS. Wykres obejrzany. Python bez lock, bytecode repo phase5/__pycache__; bez produktu/C++/git. SCAPS Closed/windows=[]. Raport runs/phase-5/report.md.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| Si Vbi | VT ln(NaNd/ni²)=0,854263V |0,853769V|−0,0578%|VT SCAPS~0,0259V|
+| CdTe→CdS offsets |ΔEc=chi_p−chi_n=−0,1eV; ΔEv=−1eV|−0,1/−1eV|<1e-7eV|EB interface pair|
+| Na Si/CdTe |1e22m^-3|9,868388e21/1,004018e22|−1,316/+0,402%|MS finite-n correction|
+
+## 2026-11-19 — phase 6
+
+- Desktop active; state/knowledge/journal tail/AGENT read. Complete phase2/3 raw reused without new simulation or modifying earlier phases. No SCAPS launch; final close=Closed, windows=[].
+- runs/phase-6/analyze.py reuses diode_fit/richardson/inflection/step_fit. Six source datasets copied into datasets/phase-6-activation-energy/sources with raw, CSV SI, exact params/.def/.act/scripts; source and package hashes checked.
+- phi_eff0.744406576eV vs0.75 (−0.746%); Ea_inflection0.402892103eV (+0.723%); localDebye0.400487785eV (+0.122%). IV windows0.743453…0.745123eV. Omitting T² gives0.790036/0.453049eV despite R²>0.9998.
+- Fast lane phases1–6 in knowledge.md, ranked top10 annoyances with SST proposals in runs/phase-6/report.md. Reference excerpts Sze§3.3 and Heath/Zabierowski§4.6; no new SCAPS manual lookup.
+- py_compile PASS; bytecode built in repo runs/phase-6/__pycache__. Analysis and all assertions PASS this job: hashes, raw/SI/settings, synthetic diode/Debye/Arrhenius, CSV/JSON, physics. Plot inspected. Python without lock; no C++ target/product change, git or dependencies.
+- Remaining: earlier GUI failures, low-T reverse, confidence intervals, mesh/frequency convergence, exact SCAPS constants. State updated.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| phi_eff | phi_m−chi=0.75eV |0.744406576eV|−5.593meV|ln(J0/T²),9T|
+| Ea inflection | Ec−Etrap=0.4eV |0.402892103eV|+2.892meV|ln(2πf/T²),5T|
+| Ea local Debye |0.4eV|0.400487785eV|+0.488meV|method sensitivity|
+
+## 2026-11-19 — phase 7
+
+- Active;state/knowledge/journal tail/AGENT read. GUI Set problem no effect,double click/hwnd/restart/start .def checked;script fallback. Baseline+3defect models,9T150…350K,0V,dark,211points1Hz…10MHz;36complete scans.
+- First55s timeout/partial series;remaining script exit6/127s. Initial double lost first defect through repeated srhrecombination;archived invalid outputs outside datasets. Duplicate retry exit6/25.8s;post-calculate .def confirms0.28/0.43eV.
+- 4datasets exact raw/.def/.act/.eb/CSVSI/params/SHA256. Arrhenius corrected0.325656/0.318361/0.268313/0.423394eV;raw ln f0.370589/0.363293/0.307201/0.474027eV. Walter300K recovers25–26%Nt,Gauss sigma+57.67%;no rescaling. Full physics table runs/phase-7/report.md.
+- Manual lookup Gaussian/Echar/discretization logged docs-needed;Heath4.9 used for derivative/inversion limitations. Failed web PDF404;physics based on local text. BaselineG/ReZ inconsistency flagged;all defect scans identity passes2e-7.
+- py_compile+analyze.py assertions PASS this job;bytecode repo phase7/__pycache__,no C++ target/product/git/dependencies,Python without lock. Plot inspected;0GUI screenshots. SCAPS closeClosed/windows[]. Open: GUI,convergence,inversion bias,G/Z cause.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| Ea single/Gauss |0.35eV,ln(omega/T²)|0.325656/0.318361eV|−24.34/−31.64meV|apparent extraction|
+| Ea double |0.28/0.43eV|0.268313/0.423394eV|−11.69/−6.61meV|separated peaks|
+| Gaussian width300K |sigma0.025032eV|0.039467eV|+57.67%|Walter moment width|
+| Nt single/Gauss/double300K |5e20/5e20/1e21m^-3|1.32047e20/1.31473e20/2.54927e20|−73.59/−73.71/−74.51%|simplified Walter,unscaled|
+
+## 2026-11-19 — phase 8
+
+- Active;state/knowledge/journal tail/AGENT read.GUI Set problem ineffective after double click,restart,hwnd,start .def;single shot no change.Script fallback:18dark C-V scans,121points each,-3…0V/co0.025V,200/300K,1/100/1000kHz;uniform/step/deep p-Schottky.
+- First complete series exit6/53.6s.Optional full-settings export blocked on Add Comment,also fully_suppressed;set external.Rs 0 rejected as not positive.Normal close between retries.Final replay without optional.scaps exit6/45.3s;saved.def includes full numeryka,.act conditions.Final closeClosed/windows[].
+- Three datasets phase-8-*-cv,34files each,raw/def/act/input/script/CSVSI/profile/params/SHA256.MSNa error+0.0251/+0.0373%;step midpoint0.40732/0.40894um vs0.4um.Deep C1k/C1M at0V1.008756/1.346318 in200/300K.
+- Manual5.1.3 lookup logged docs-needed;SCAPS small-signal cannot supply finite-amplitude DLCP.Heath4.10/Sze2.2.3 used;requirements in runs/phase-8/dlcp-requirements.md.No artificial DLCP curves.
+- G UNVALIDATED:raw down to-0.59035S/m²,including deep300K1kHz;cause unresolved,no clipping.C profiling independent ofG.Raw Napp/W eps10 corrected to material11.7;0V derivative artefacts retained.
+- Final py_compile+analyze.py assertions PASS this job;bytecode repo runs/phase-8/__pycache__.18scans/2178points/3packages,SI/settings/hashes/synthetic derivative/MS/step/dispersion;plot inspected.Python without lock per brief;no C++ target/product/git/dependencies.Open:GUI,mesh/bias-step convergence,G cause.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| Na uniform200/300K |1e22m^-3,-2/(q eps slope)|1.000251/1.000373e22m^-3|+0.0251/+0.0373%|MS reverse fit|
+| Step midpoint200/300K |0.4um|0.40732/0.40894um|+7.32/+8.94nm|finite spatial resolution|
+| Step back200/300K |3e22m^-3|3.00585/3.01675e22m^-3|+0.195/+0.558%|local derivative median|
+| Deep C1k/C1M at0V |thermal activation,stronger dispersion at300K|1.008756/1.346318|+0.876/+34.632%from1|200/300K;not trap density extraction|
+
+## 2026-11-19 — phase 9
+
+- Active. Odczytano state/knowledge/journal tail/AGENT. GUI Set problem/single shot bez efektu po hwnd, double Set problem, restarcie i starcie z example CIGS.def; script fallback. Bez screenshots.
+- CIGS: high-bias failures1,080 V@200 K i0,985 V@280 K. Stary example CdTe: failure0,545 V@200 K. Dostarczony CdTe-base: fixed/adaptive mesh failures1,045/1,050 V. Zawężono zakresy per T; każda końcowa light curve przecina J=0. Nieudane próby poza datasets. Manual5.1.2/numerical warnings lookup i QE syntax reference zalogowane.
+- Komplet32 IV+2 QE, 200–340 K co20 K, AM1.5G1000 W/m²; sześć datasets,7322 punkty. Raw/.def/.act/input/original/optics/replay/CSV SI/params/SHA256.32 JFM curve TSV z normalization area1 cm²; real parse_dat i parse_scaps_iv PASS, T/value/units sprawdzone. GUI/C++ import nieuruchomiony.
+- Ea Voc: CIGS1,317946 vs Eg1,2; CdTe all-T1,323072 vs Eg1,5, high-T1,538328. Curvature i contact recombination nie pozwalają uznać all-T interceptu za interface Ea. QE CdTe tail0,02887609% wyjaśniony alpha100 m⁻¹; pierwszy ideal-cutoff assert zawiódł, zachowano raw i dostosowano kontrolę do optical table.
+- Final py_compile i analyze assertions PASS; bytecode w repo runs/phase-9/__pycache__, Python bez locka. Bez C++/produktu/git/dependencies. Wykres obejrzany. Final CdTe replay exit6/100,7 s; close=Closed/windows=[]. Raport runs/phase-9/report.md.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| CIGS Voc0K | Eg1,2 eV |1,317946 eV|+0,117946 eV|finite-T/window bias; bulk dominates near Voc|
+| CdTe Voc0K | Eg1,5 eV |all-T1,323072/high-T1,538328 eV|−0,176928/+0,038328 eV|curvature/contact effects; brak unikalnej interface Ea|
+| n300K CIGS/CdTe | SRH≈2 |2,002026/1,874662|+0,10/−6,27%|local fit0,2–0,4 V|
+| CIGS QE edge |1033,314 nm|ostatni dodatni1030 nm|−3,314 nm|krok5 nm|
+| CdTe QE1200nm | nonzero alpha100 m⁻¹ |0,02887609%|zachowane|file-based optics różni się od electrical Eg|
+
+
+## 2026-11-19 — phase 10
+
+- Odczytano state/knowledge/journal tail/AGENT. Pulpit active. GUI real mouse, hwnd, double Set problem, single shot, restart i start `.def` bez reakcji; brak ukrytych modali. Script fallback,0 screenshots.
+- `offset--0.2-input.def` obcięto do `offset`; zmieniono nazwy na m20/p10. Pierwszy model pinning zachował tylko acceptor; odrzucono wyniki do invalid-single-acceptor. Replay zakończył się exit3221226525/7,6 s. Poprawny duplicate IFdefect i51 levels: exit6/17,2 s; saved `.def` potwierdza donor+acceptor/N.
+- Offset+0,8 eV do1,15 V dał extrapolated Voc1,443977 V/FF70,3204%; odrzucono do insufficient-range. Rerun do1,6 V: bracketed Voc1,218665 V/FF83,3203%, exit6/12 s. Initial offset32,4 s, density31,3 s, extension38,4 s; wszystkie exit6.
+- Zapisano3 datasets phase-10-offset/density/schottky:21 light I–V +15 dark C–V,5946 punktów i36 equilibrium bands. Exact raw/input/saved `.def`/`.act`/optics/replay/CSV SI/params/metrics/SHA256. Energie bands w J, metryki w jawnych eV. Odrzucone próby poza datasets.
+- Manual contact3.3, defect3.6.3 i script interface references zalogowano jako docs-needed. Theory: Sze3.2 pp.141–142. Wykres obejrzano. Final py_compile i pełny analyze assertions PASS; bytecode w repo `runs/phase-10/__pycache__`. Python bez locka; bez C++/produktu/git/dependencies. SCAPS close=Closed, windows=[].
+- Raport: `runs/phase-10/report.md`. Otwarte: GUI, mesh/bias convergence, quantum calibration interlayer oraz walidacja G.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| Spike blocking | kT0,025852 eV; próg zależny od urządzenia | silne między0,4/0,6 eV |15,47/23,21 kT|Jsc−55,94%, FF−38,87 pp|
+| Voc vs Nt0→1e17 m⁻² | interface SRH obniża Voc |cliff−160,168 mV; spike−1,145 mV|zależność od offsetu|te same Nt/capture/Et|
+| S, Dit0/1e17/1e18 | z Cd0,976336/0,518157/0,099269 |0,975030/0,517899/0,099267|−0,001307/−0,000257/−0,00000144|Sze3.2, finite interlayer|
+
+
+## 2026-11-19 ? phase 11
+
+- 8 numerics cases,14 exported dark IV scans/949 points,14 final profiles+2 equilibrium. Dataset `datasets/phase-11-numerics`; exact input/saved/final .def,.act,SI CSV,params,replay,SHA256,quality flags.
+- Desktop active; real mouse/double Set problem/single shot/hwnd/restart/.def startup ineffective. No hidden modal. Script fallback;0 GUI screenshots. Convergence modal initial forward1.68V blocked export; OK/Enter ineffective,normal close worked. appendtofile rerun exported partial scan; log preserved.
+- 80/40K completed but terminal current unresolved vs recombination/current profile. 2e19cm^-3 doping has10.12% spatial current spread. Tight tolerance+max mesh ratio1.2 improves terminal budget,not spatial current(9.86%). Thin50/2nm and thick500/20um completed. Deep neutral Nt1e25m^-3 completed.
+- Forward: first1% budget failure1.46V,before formal failure1.68V(lastIV1.66). Smaller step failure1.67,last1.665. Clamp0.1/maxiter5000 and fixed mesh do not cure. EB after failure is attempted bias,not lastIV. Separate completed1.66V confirms89.69% budget error. Logged replay exit3221226525 after files; most other runs exit6.
+- Read Core README+validation tools;graphify first. Existing headless used read-only for baseline/thin/80K,31/31 converged each. Core-SCAPS J0.6V:+0.006366%/+0.005487%;low80 factor2.2555e9 vs terminal,but+1.5645% vs SCAPS recombination. Existing normalize+endpoint comparator PASS/PASS/FAIL;full IV compared separately. Core CPU experiments outside lock after an unnecessary initial wait; own queued wrapper terminated without changing shared lock. No Core build/modification/git/dependencies.
+- Final Python build/check:py_compile 3scripts in repo runs/phase-11/__pycache__;full analysis assertions and normalization ran. Artifact integrity PASS;low80 comparator intentionally FAIL. Plot inspected. 4 manual lookups logged docs-needed. SCAPS close=Closed,windows=[]. Report runs/phase-11/report.md.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| Vbi baseline | VT ln(NaNd/ni?)=0.8543583V |0.8537692V|?0.5890mV|flatband homojunction|
+| Eg |Ec?Ev=1.12eV|1.12eV|<1?eV|export/parameter check|
+| n baseline |~1 diffusion|1.021284|+2.13%|0.3?0.5V|
+| Spatial current spread/J |0|baseline7.3345e?6;doping0.101217|0.000733%/10.12%|completion not accuracy|
+| Forward budget at1.66V |J=Jrec|relative error0.896947|89.69%|separate completed scan|
+
+
+## 2026-11-19 — phase 12
+
+- Synthesis only; desktop active. Read state/knowledge/journal tail/AGENT, params and selected reports. No new acquisition or source-dataset edits.
+- Catalog: 74 top-level directories, all with device/measurement/conditions/parameters/SST use/quality; 87 params files including phase6 source copies and eight phase11 cases. INVALID/EXPLORATORY and derived duplicates remain explicit.
+- Capability map separates tested/documented/unsupported: small-signal C/G/Z, external Rs/Gsh correction, no transient/DLTS or finite-amplitude DLCP, native fitter documented but untested. Three manual lookups logged docs-needed.
+- Top-10 script/workflow pain points ranked by scientific validity, blockage and recurrence with SST proposals. Existing Core command→job/nanobind contract preserved as a requirement, no new product API.
+- knowledge.md reduced 283→135 lines; complete prior version archived. Initial PowerShell→Python Unicode loss corrected and encoding checked. First link check caught missing validation.txt, fixed; final full check PASS.
+- py_compile built catalog.py bytecode in repo runs/phase-12/__pycache__. catalog.py --check PASS: 74 rows, 1306 source hashes, all params JSON, CSV/.def presence, links, reproducibility/archive/encoding and summary-energy/Vbi arithmetic. Python without lock, no C++/git/dependencies. No earlier acquisition/analysis reruns.
+- SCAPS close=Closed/windows=[]. Report runs/phase-12/report.md. Open: GUI, G anomalies, mesh/frequency convergence, low-T/high-forward, Walter bias, quantum surrogate calibration, native fitter and external-circuit AC validation.
+
+| quantity | expected (theory, formula) | SCAPS | diff | comment |
+|---|---|---|---|---|
+| phi_eff | phi_m−chi=0.75 eV | 0.744406576 eV | −5.593 meV | previous phase6 extraction, summary arithmetic checked |
+| Ea inflection | Ec−Et=0.4 eV | 0.402892103 eV | +2.892 meV | local Debye +0.488 meV; no new acquisition |
+| Na CV200K1kHz | −2/(q eps slope)=1e22 m^-3 | 1.000251035e22 m^-3 | +0.02510% | phase8, not DLCP |
+| Vbi baseline | VT ln(NaNd/ni²)=0.854358257 V | 0.853769220 V | −0.589037 mV | phase11 bands, arithmetic checked |

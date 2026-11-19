@@ -1,0 +1,257 @@
+set quitscript.quitSCAPS
+set script_display_mode.fully_suppressed
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-input.def
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 1000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f1000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f1000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f1000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 100000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f100000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f100000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f100000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 1000000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f1000000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f1000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T200-f1000000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f1000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f1000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f1000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 100000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f100000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f100000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f100000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1000000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f1000000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f1000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\uniform-T300-f1000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-input.def
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 1000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f1000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f1000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f1000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 100000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f100000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f100000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f100000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 1000000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f1000000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f1000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T200-f1000000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f1000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f1000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f1000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 100000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f100000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f100000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f100000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1000000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f1000000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f1000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\step-T300-f1000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-input.def
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 1000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f1000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f1000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f1000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 100000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f100000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f100000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f100000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+action workingpoint.frequency 1000000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f1000000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f1000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T200-f1000000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f1000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f1000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f1000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 100000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f100000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f100000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f100000.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+action workingpoint.frequency 1000000
+action cv.startv -3
+action cv.stopv 0
+action cv.increment 0.025
+action cv.checkaction 1
+clear simulations
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f1000000.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f1000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-8\deep-T300-f1000000.act

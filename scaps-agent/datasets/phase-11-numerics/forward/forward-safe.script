@@ -1,0 +1,21 @@
+set quitscript.quitSCAPS
+set script_display_mode.suppressed
+set errorhandling.appendtofile
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-11\forward-safe-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-11\forward-safe.def
+action iv.startv 0
+action iv.stopv 1.66
+action iv.increment 0.02
+action iv.checkaction 1
+action iv.continueafterVoc
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-11\forward-safe.act
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-11\forward-safe.iv
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-11\forward-safe-final.eb
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-11\forward-safe-final.def

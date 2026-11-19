@@ -1,0 +1,151 @@
+set quitscript.quitSCAPS
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-input.def
+clear actions
+action dark
+action workingpoint.voltage 0
+set layer1.defect1.duplicate
+set layer1.defect2.Et 0.43
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 150
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T150.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T150.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T150.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T150.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 175
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T175.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T175.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T175.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T175.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 200
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T200.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T200.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T200.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T200.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 225
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T225.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T225.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T225.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T225.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 250
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T250.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T250.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T250.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T250.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 275
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T275.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T275.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T275.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T275.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 300
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T300.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T300.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T300.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T300.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 325
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T325.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T325.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T325.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T325.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.temperature 350
+clear simulations
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T350.eb
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T350.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T350.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-7\double-T350.act

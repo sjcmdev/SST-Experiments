@@ -1,0 +1,290 @@
+set quitscript.quitSCAPS
+set script_display_mode.suppressed
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-0-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-0.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-0.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-0.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-0.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-1000000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-1000000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-1000000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-1000000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-1000000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-10000000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\density-100000000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-0-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-0.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-0.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-0.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-0.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-1000000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-1000000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-1000000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-1000000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-1000000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-10000000000000000.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000000-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000000.eb
+action generationfrominternalmodel
+load spectrumfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\AM1_5G-1sun.spe
+action illumination.fromright
+action light
+action intensity.T 100
+action spectrumcutoff.off
+action iv.startv -0.2
+action iv.stopv 1.15
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000000.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000000.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\cliff-density-100000000000000000.act

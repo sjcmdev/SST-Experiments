@@ -1,0 +1,287 @@
+set quitscript.quitSCAPS
+set script_display_mode.suppressed
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M450-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M450.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M450.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M450.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M450.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M460-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M460.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M460.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M460.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M460.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M470-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M470.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M470.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M470.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M470.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M480-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M480.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M480.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M480.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M480.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M490-input.def
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M490.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M490.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M490.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D0-M490.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M450-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M450.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M450.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M450.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M450.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M460-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M460.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M460.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M460.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M460.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M470-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M470.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M470.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M470.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M470.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M480-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M480.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M480.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M480.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M480.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M490-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M490.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M490.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M490.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D100000000000000000-M490.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M450-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M450.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M450.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M450.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M450.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M460-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M460.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M460.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M460.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M460.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M470-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M470.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M470.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M470.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M470.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M480-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M480.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M480.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M480.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M480.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M490-input.def
+set interface1.IFdefect1.duplicate
+set interface1.IFdefect2.singleacceptor
+set interface1.IFdefect2.Et 0.84
+clear actions
+clear simulations
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M490.eb
+action cv.startv -0.2
+action cv.stopv 0
+action cv.increment 0.02
+action cv.checkaction 1
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M490.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M490.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-10\pinning-D1000000000000000000-M490.act

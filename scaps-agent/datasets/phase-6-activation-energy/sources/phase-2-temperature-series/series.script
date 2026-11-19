@@ -1,0 +1,29 @@
+set quitscript.quitSCAPS
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+action iv.startv -0.4
+action iv.stopv 0.2
+action iv.increment 0.005
+action iv.checkaction 1
+action iv.continueafterVoc
+clear simulations
+action workingpoint.temperature 200
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\pilot-T200.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\pilot-T200.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\pilot-T200.act
+clear simulations
+action workingpoint.temperature 360
+calculate singleshot
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\pilot-T360.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\pilot-T360.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\pilot-T360.act
+clear simulations
+action workingpoint.temperature 300
+load batchsettingsfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\temperature.sbf
+calculate batch
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\temperature-series.iv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\temperature-series.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\temperature-series.act

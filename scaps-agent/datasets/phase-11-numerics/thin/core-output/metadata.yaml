@@ -1,0 +1,183 @@
+schema_version: 1
+case_id: phase11-thin
+temperature_K: 300
+external:
+  area_m2: 1
+  series_ohm_m2: 0
+  shunt_ohm_m2: .inf
+mobility_temperature_model: constant
+constants_mode: scaps_compat
+constants:
+  q_C: 1.602e-19
+  kB_J_K: 1.38306e-23
+  eps0_F_m: 8.854e-12
+conventions:
+  x_positive: left_to_right
+  applied_voltage: left_contact_relative_to_right_contact
+  current_positive: entering_left_contact
+  electric_field: E_equals_minus_dpsi_dx
+units:
+  x: m
+  voltage: V
+  energy: eV
+  carrier_density: m^-3
+  electric_field: V/m
+  current_density: A/m^2
+files:
+  iv: iv.csv
+  profiles:
+    - file: profiles/profile_000.csv
+      voltage_V: 0
+      internal_voltage_V: 0
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_001.csv
+      voltage_V: 0.02
+      internal_voltage_V: 0.02
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_002.csv
+      voltage_V: 0.04
+      internal_voltage_V: 0.04
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_003.csv
+      voltage_V: 0.06
+      internal_voltage_V: 0.06
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_004.csv
+      voltage_V: 0.08
+      internal_voltage_V: 0.08
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_005.csv
+      voltage_V: 0.1
+      internal_voltage_V: 0.1
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_006.csv
+      voltage_V: 0.12000000000000001
+      internal_voltage_V: 0.12000000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_007.csv
+      voltage_V: 0.14
+      internal_voltage_V: 0.14
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_008.csv
+      voltage_V: 0.16
+      internal_voltage_V: 0.16
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_009.csv
+      voltage_V: 0.18
+      internal_voltage_V: 0.18
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_010.csv
+      voltage_V: 0.19999999999999998
+      internal_voltage_V: 0.19999999999999998
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_011.csv
+      voltage_V: 0.21999999999999997
+      internal_voltage_V: 0.21999999999999997
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_012.csv
+      voltage_V: 0.23999999999999996
+      internal_voltage_V: 0.23999999999999996
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_013.csv
+      voltage_V: 0.25999999999999995
+      internal_voltage_V: 0.25999999999999995
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_014.csv
+      voltage_V: 0.27999999999999997
+      internal_voltage_V: 0.27999999999999997
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_015.csv
+      voltage_V: 0.3
+      internal_voltage_V: 0.3
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_016.csv
+      voltage_V: 0.32
+      internal_voltage_V: 0.32
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_017.csv
+      voltage_V: 0.34
+      internal_voltage_V: 0.34
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_018.csv
+      voltage_V: 0.36000000000000004
+      internal_voltage_V: 0.36000000000000004
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_019.csv
+      voltage_V: 0.38000000000000006
+      internal_voltage_V: 0.38000000000000006
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_020.csv
+      voltage_V: 0.4000000000000001
+      internal_voltage_V: 0.4000000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_021.csv
+      voltage_V: 0.4200000000000001
+      internal_voltage_V: 0.4200000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_022.csv
+      voltage_V: 0.4400000000000001
+      internal_voltage_V: 0.4400000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_023.csv
+      voltage_V: 0.46000000000000013
+      internal_voltage_V: 0.46000000000000013
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_024.csv
+      voltage_V: 0.48000000000000015
+      internal_voltage_V: 0.48000000000000015
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_025.csv
+      voltage_V: 0.5000000000000001
+      internal_voltage_V: 0.5000000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_026.csv
+      voltage_V: 0.5200000000000001
+      internal_voltage_V: 0.5200000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_027.csv
+      voltage_V: 0.5400000000000001
+      internal_voltage_V: 0.5400000000000001
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_028.csv
+      voltage_V: 0.5600000000000002
+      internal_voltage_V: 0.5600000000000002
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_029.csv
+      voltage_V: 0.5800000000000002
+      internal_voltage_V: 0.5800000000000002
+      shunt_current_density_A_m2: 0
+      converged: true
+    - file: profiles/profile_030.csv
+      voltage_V: 0.6000000000000002
+      internal_voltage_V: 0.6000000000000002
+      shunt_current_density_A_m2: 0
+      converged: true

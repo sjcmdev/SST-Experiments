@@ -1,0 +1,2 @@
+voltage_V,reference_A_m2,candidate_A_m2,abs_error_A_m2,symmetric_relative_error
+0.6,3821.68079,3821.9240864979765,0.24329649797664388,6.366014515604148e-05
