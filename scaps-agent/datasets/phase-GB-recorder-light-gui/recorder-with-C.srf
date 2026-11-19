@@ -1,0 +1,37 @@
+
+Recorder parameter   0 :
+
+recorder type :cell characterisctics
+recorder property :efficiency
+
+Recorder parameter   1 :
+
+recorder type :general
+recorder property :general capacitance
+
+Recorder parameter   2 :
+
+recorder type :cell characterisctics
+recorder property :open circuit voltage
+
+Recorder parameter   3 :
+
+recorder type :cell characterisctics
+recorder property :short circuit current
+
+Recorder parameter   4 :
+
+recorder type :cell characterisctics
+recorder property :fill factor
+
+Recorder parameter   5 :
+
+recorder type :cell characterisctics
+recorder property :voltage at maximum power
+
+Recorder parameter   6 :
+
+recorder type :cell characterisctics
+recorder property :current at maximum power
+
+Recorder type flag : 	 1	 0	 0	 0	 0	 1	 0	 0

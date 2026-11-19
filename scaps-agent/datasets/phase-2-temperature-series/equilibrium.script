@@ -1,0 +1,15 @@
+set quitscript.quitSCAPS
+clear actions
+action dark
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+action workingpoint.temperature 200
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\equilibrium-T200.eb
+action workingpoint.temperature 300
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\equilibrium-T300.eb
+action workingpoint.temperature 360
+calculate singleshot
+save results.eb D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-2\equilibrium-T360.eb
+

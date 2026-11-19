@@ -1,0 +1,78 @@
+set quitscript.quitSCAPS
+clear actions
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action cv.startv -2
+action cv.stopv 0.4
+action cv.increment 0.02
+action cv.checkaction 1
+clear simulations
+action workingpoint.frequency 1000
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cv-1kHz.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cv-1kHz.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cv-1kHz.act
+clear simulations
+action workingpoint.frequency 1000000
+calculate singleshot
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cv-1MHz.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cv-1MHz.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cv-1MHz.act
+clear actions
+action dark
+action workingpoint.voltage 0
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+clear simulations
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3/cf-base.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3/cf-base.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3/cf-base.act
+load definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\defect-seed.def
+clear actions
+action dark
+action workingpoint.voltage 0
+action cf.startf 1
+action cf.stopf 1e7
+action cf.points.per.decade 30
+action cf.checkaction 1
+set layer1.defect1.singleacceptor
+set layer1.defect1.singlelevel
+set layer1.defect1.belowEC
+set layer1.defect1.Et 0.4
+set layer1.defect1.Ntotal 1e15
+set layer1.defect1.capture_cross_section.electron 1e-15
+set layer1.defect1.capture_cross_section.hole 1e-15
+clear simulations
+action workingpoint.temperature 240
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T240.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T240.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T240.act
+clear simulations
+action workingpoint.temperature 270
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T270.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T270.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T270.act
+clear simulations
+action workingpoint.temperature 300
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T300.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T300.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T300.act
+clear simulations
+action workingpoint.temperature 330
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T330.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T330.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T330.act
+clear simulations
+action workingpoint.temperature 360
+calculate singleshot
+save results.cf D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T360.cf
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T360.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-3\cf-defect-T360.act

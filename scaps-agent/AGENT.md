@@ -38,8 +38,15 @@ The point of this work is to REPRODUCE A HUMAN SCAPS USER: do everything through
 ## Rules
 - One phase per run. At start: read `state.md`, `knowledge.md` (and only the journal tail). At end: update files, `close('scaps')` unless told otherwise.
 - Physics checks are mandatory: each phase ends with a table `quantity | expected (theory, formula) | SCAPS | diff | comment`.
-- Be economical: prefer `read(diff=True)`, read panels once, act in batches. Stop the phase if stuck >15 tool calls on one sub-goal; log it as an annoyance and move on.
+- Be economical: prefer `read(diff=True)`, read panels once, act in batches. If you are stuck for >15 tool calls on one GUI sub-goal, log it as an annoyance, then use FALLBACKS before giving up on the phase:
+  (1) close SCAPS normally and restart it;
+  (2) check windows() for a disabled panel or a hidden modal and use hwnd;
+  (3) click Set problem twice;
+  (4) load the .def through run_script([def]) (SCAPS starts with that definition loaded);
+  (5) for series, use script mode.
+  A phase ends without measurements ONLY if all fallbacks fail. GUI friction is a finding, but the physics data is still required. (Owner, 2026-11-19: finishing the phases is very important.)
 - Final message of the run = phase report in Polish (frontmatter `status: active`, `type: experiment`, `tags: [scaps, agent, phase-N]`): goal, what was done, physics-check table, top annoyances, knowledge gained, problems. Max ~120 lines.
 
 - **Set problem twice (owner hint, 2026-11-19):** SCAPS sometimes needs "Set problem" clicked twice before "single shot" (Calculate) does anything. If a calculation does not start, click Set problem again and then retry single shot. Log each occurrence as an annoyance.
 - **build-lock is only for C++ builds and GPU runs.** Python generators and `--check` scripts run directly, without `build-lock.sh`. In phase 1 waiting for the lock cost 7 minutes and left the datasets unchecked.
+- **Loading a .def through the GUI dialog fails (phases 2 and 3):** copy the .def into `D:\Aplications\SCAPS\install\def\` and pick it by name in the list. Or type ONLY the file name after navigating to that folder. Otherwise start SCAPS with run_script([def]). Do not give up on a phase because of loading.

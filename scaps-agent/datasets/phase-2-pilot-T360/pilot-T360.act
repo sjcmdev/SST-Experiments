@@ -1,0 +1,48 @@
+Temperature :   360.00 K
+Voltage :     0.0000 V
+Frequency :   1.0000e+06 Hz
+Number of points :   5
+dark :  1
+incident illumination specified
+incident spectrum from file :AM1_5G 1 sun.spe
+spectrum cut off :  0
+short wavelength cut off :   200.00 nm
+long wavelength cut off :  4000.00 nm
+neutral density :     0.0000
+transmission :   100.0000 %
+attenuation :   100.0000 %
+Secondworkpoint Temperature :   300.00 K
+Secondworkpoint Voltage :     0.0000 V
+Secondworkpoint Number of points :   5
+Secondworkpoint dark :  1
+Secondworkpoint incident illumination specified
+Secondworkpoint incident spectrum from file :AM1_5G 1 sun.spe
+Secondworkpoint spectrum cut off :  0
+Secondworkpoint short wavelength cut off :     0.00 nm
+Secondworkpoint long wavelength cut off :  2000.00 nm
+Secondworkpoint neutral density :     0.0000
+Secondworkpoint transmission :   100.0000 %
+Secondworkpoint attenuation :   100.0000 %
+pause :  0
+IV_startV :    -0.4000 V
+IV_stopV :     0.2000 V
+IV_points : 121
+IV_increment :     0.005000 V
+IV_calculate :  1
+stop after Voc :  0
+CV_startV :    -0.8000 V
+CV_stopV :     0.8000 V
+CV_points :  81
+CV_increment :     0.020000 V
+CV_calculate :  0
+MIS CV_calculate :  0
+Cf_startf :    1.000e+02 Hz
+Cf_stopf :    1.000e+06 Hz
+Cf_total points :  21
+Cf_points per decade :   5
+Cf_calculate :  0
+QE_startlambda :   300.00 nm
+QE_stoplambda :   900.00 nm
+QE_points :  61
+QE_increment :    10.00 nm
+QE_calculate :  0

@@ -1,0 +1,21 @@
+set quitscript.quitSCAPS
+clear actions
+action dark
+action workingpoint.temperature 300
+action workingpoint.voltage 0
+action workingpoint.frequency 1e6
+action iv.startv -0.4
+action iv.stopv 0.2
+action iv.increment 0.02
+action iv.checkaction 1
+action iv.continueafterVoc
+action cv.startv 0
+action cv.stopv 0.2
+action cv.increment 0.02
+action cv.checkaction 1
+load batchsettingsfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-GB/temperature-gui.sbf
+calculate batch
+save results.iv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-GB/temperature-batch-script.iv
+save results.cv D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-GB/temperature-batch-script.cv
+save settings.definitionfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-GB/temperature-batch-script.def
+save settings.actionlistfile D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-GB/temperature-batch-script.act

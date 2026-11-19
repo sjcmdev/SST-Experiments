@@ -1,0 +1,21 @@
+> SCAPS 3.3.12 ELIS-UGent: Version scaps3312.exe, dated 03-06-2025, 13:37:06
+> SCAPS Batch Settings file, saved on 	19-11-2026 at 01:21:12
+> problem definition file loaded :
+> D:\SJCM\01_SemiconductorStudio\SST-Experiments-gui-bridge\scaps-agent\runs\phase-GB\script-T300.def
+> last saved: 	19-11-2026 at 01:14:41
+> 
+
+batch display mode = not suppressed
+
+Batch parameter 0 :
+
+Label 1 : T
+Label 2 : nihil
+Label 3 : nihil
+Label 4 : nihil
+simultaneous :  0
+values from a list :  0
+logarithmic variation :  0
+startvalue :   2.00000000e+02
+stopvalue :   3.60000000e+02
+number of steps :    9
