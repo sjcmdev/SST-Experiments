@@ -56,6 +56,10 @@ def fuzzy_match(text: str, candidates: list[str], nth: int = 0) -> int:
 if not ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
     ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
+# Children (SCAPS, our apps) inherit this: a crash ends the process instead of leaving a
+# system "Application Error" box (owned by csrss, cannot be dismissed by automation) over the desktop.
+ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)  # FAILCRITICALERRORS | NOGPFAULTERRORBOX | NOOPENFILEERRORBOX
+
 import win32api
 import win32con
 import win32gui
@@ -83,12 +87,17 @@ mcp = FastMCP("gui-bridge")
 APPS = {
     "scaps": Path(r"D:\Aplications\SCAPS\install\scaps3312.exe"),
     "propho": Path(r"D:\STUDIA\Semiconductor-Studio\ProPho\propho_1v1.exe"),
-    "origin": None,  # TODO: provide the installed Origin executable.
+    "origin": Path(r"D:\Aplications\Origin\App\Origin95_64.exe"),
+    # Our apps: matched by executable name, so any build (main, worktree, %TEMP% build) is found.
+    "scapslab": Path(r"D:/SJCM/01_SemiconductorStudio/SST-Prototypes/build/bin/Release-windows-x86_64/ScapsLab/ScapsLab.exe"),
+    "caplab": Path(r"D:/SJCM/01_SemiconductorStudio/wt-cl/integ/SST-Prototypes/build/bin/Release-windows-x86_64/CapLab/CapLab.exe"),
+    "jfm": Path(r"D:/SJCM/01_SemiconductorStudio/SST-Prototypes/build/bin/Release-windows-x86_64/JFM/JFM.exe"),
 }
+BY_NAME = {"scapslab", "caplab", "jfm"}
 ROOT = Path(__file__).resolve().parent
 _last_reads = {}
 _shot_count = 0
-_shot_budget = max(0, int(os.environ.get("GUI_BRIDGE_SHOT_BUDGET", "5")))
+_shot_budget = max(0, int(os.environ.get("GUI_BRIDGE_SHOT_BUDGET", "60")))
 
 
 def app_path(app):
@@ -111,7 +120,7 @@ def app_windows(app):
             buf = ctypes.create_unicode_buffer(32768)
             size = ctypes.c_ulong(len(buf))
             if ctypes.windll.kernel32.QueryFullProcessImageNameW(int(handle), 0, buf, ctypes.byref(size)):
-                if Path(buf.value) == exe:
+                if Path(buf.value) == exe or (app in BY_NAME and Path(buf.value).name.lower() == exe.name.lower()):
                     found.append(win)
         except (OSError, win32gui.error):
             continue
@@ -233,7 +242,7 @@ async def recognize(win, region=None):
 
 @mcp.tool()
 async def windows(app: str) -> list[dict]:
-    """List visible top-level windows of scaps/propho/origin, including CVI panels, topmost first.
+    """List visible top-level windows of scaps/propho/origin/scapslab/caplab/jfm, including CVI panels, topmost first.
 
     Use title 'hwnd:<hwnd>' in read/click/wait/screenshot to address one of several same-titled panels."""
     return [{"title": w.window_text(), "class": w.class_name(), "pid": w.process_id(), "hwnd": w.handle,
@@ -287,6 +296,21 @@ async def click(title: str, text: str | None = None, x: int | None = None, y: in
     if not (0 <= x < width and 0 <= y < height):
         raise ToolError("Click is outside the client area")
     if real_mouse:
+        # A system dialog (Windows Firewall/Security prompt, crash box) dims the screen and swallows input:
+        # refuse instead of reporting a silent no-op.
+        sx, sy = win32gui.ClientToScreen(win.handle, (x, y))
+        hit = win32gui.WindowFromPoint((sx, sy))
+        if win32process.GetWindowThreadProcessId(hit)[1] != win.process_id():
+            # ponytail: one retry after moving our window to the top-left corner; enough for dialogs.
+            win32gui.SetWindowPos(win.handle, 0, 40, 40, 0, 0, win32con.SWP_NOSIZE | win32con.SWP_NOZORDER)
+            await asyncio.sleep(0.3)
+            sx, sy = win32gui.ClientToScreen(win.handle, (x, y))
+            hit = win32gui.WindowFromPoint((sx, sy))
+        if win32process.GetWindowThreadProcessId(hit)[1] != win.process_id():
+            root = win32gui.GetAncestor(hit, 2)
+            raise ToolError(f"Click blocked: point is covered by '{win32gui.GetClassName(hit)}' / "
+                            f"'{win32gui.GetWindowText(root)}' of another process (system prompt or other window). "
+                            "Report it; do not retry blindly.")
         # click_input() calls SetForegroundWindow, which Windows denies to background processes;
         # a raw click at screen coords activates the window itself.
         try:
@@ -388,7 +412,7 @@ async def run_script(files: list[str], timeout_s: int = 1800) -> str:
 async def launch(app: str) -> str:
     """Launch a mapped app, or reuse it. ProPho is found by title, not launcher PID."""
     exe = app_path(app)
-    title = "SCAPS 3.3.12 Action Panel" if app == "scaps" else "(?i)Propho"
+    title = {"scaps": "SCAPS 3.3.12 Action Panel", "propho": "(?i)Propho", "origin": "(?i)Origin"}.get(app, "(?i)" + app)
     if not app_windows(app):
         subprocess.Popen([str(exe)], cwd=exe.parent, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(150):
@@ -412,14 +436,42 @@ async def close(app: str) -> str:
                                    else "propho" in w.window_text().casefold())]
     if not main:
         main = found
-    for win in main:
-        win32gui.PostMessage(win.handle, win32con.WM_CLOSE, 0, 0)
-    for _ in range(15):
+    quit_clicked = False
+    if app == "scaps":
+        # WM_CLOSE on the CVI frame crashes SCAPS 3.3.12 (access violation box): use its own Quit button.
+        panel = [w for w in found if w.window_text() == "SCAPS 3.3.12 Action Panel"]
+        if panel:
+            try:
+                await click("SCAPS 3.3.12 Action Panel", text="Quit", real_mouse=True)
+                quit_clicked = True
+                for _ in range(25):
+                    await asyncio.sleep(0.2)
+                    if any(w.window_text() == "Quit SCAPS 3.3.12" for w in app_windows(app)):
+                        await click("Quit SCAPS 3.3.12", text="Yes", real_mouse=True)
+                        break
+            except ToolError:
+                quit_clicked = False
+    if not quit_clicked:
+        for win in main:
+            win32gui.PostMessage(win.handle, win32con.WM_CLOSE, 0, 0)
+    remaining = found
+    for _ in range(25):
         await asyncio.sleep(0.2)
         remaining = app_windows(app)
         if not remaining:
-            return "Closed"
-    return "Still open (check dialogs): " + ", ".join(w.window_text() for w in remaining)
+            break
+    # A crash box (owned by csrss) cannot be dismissed by automation; report it so the agent avoids it.
+    boxes = []
+    def _crash(h, _):
+        t = win32gui.GetWindowText(h)
+        if win32gui.IsWindowVisible(h) and t.endswith("- Application Error") and app_path(app).name.lower() in t.lower():
+            boxes.append(win32gui.GetWindowRect(h))
+        return True
+    win32gui.EnumWindows(_crash, None)
+    note = f" (crash box(es) on screen at {boxes}: only the owner can click OK; keep windows away)" if boxes else ""
+    if not remaining:
+        return "Closed" + note
+    return "Still open (check dialogs): " + ", ".join(w.window_text() for w in remaining) + note
 
 
 @mcp.tool()
